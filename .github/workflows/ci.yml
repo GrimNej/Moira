@@ -1,0 +1,130 @@
+# Blueprint §13.9: lint, types, tests, build, secret scan, audit. Target: under 10 minutes.
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy src
+      - run: uv run pytest -m "not contract" -q --cov --cov-report=term
+      - name: OpenAPI is up to date
+        run: |
+          uv run python -m moira.api.export_openapi ../docs/reference/openapi.json
+          git diff --exit-code -- ../docs/reference/openapi.json
+      - name: .env.example, config.py and CONFIG.md list the same variables
+        run: uv run python scripts/check_config.py
+      - name: No bare TODOs
+        run: |
+          if git grep -nE 'TODO(\b|:)' -- ../backend ../web/src ':!*.md' | grep -vE 'TODO\(#[0-9]+\)'; then
+            echo "Every TODO must reference an issue: TODO(#42)"; exit 1
+          fi
+
+  web:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npx eslint .
+      - run: npx prettier --check .
+      - run: npx tsc --noEmit
+      - run: npx vitest run --passWithNoTests
+      - run: npx vite build
+      - name: Bundle budget (JS ≤ 120 KB gzipped, fonts excluded)
+        run: |
+          total=$(cat dist/assets/*.js | gzip -9 | wc -c)
+          echo "JS gzipped: $total bytes"
+          test "$total" -le 122880
+
+  e2e:
+    runs-on: ubuntu-24.04
+    needs: [web]
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - uses: astral-sh/setup-uv@v6
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npx playwright test
+        env:
+          CI: '1'
+
+  security:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - uses: astral-sh/setup-uv@v6
+      - name: pip-audit
+        working-directory: backend
+        run: uv export --frozen --no-dev --no-hashes --format requirements-txt > /tmp/req.txt && uvx pip-audit -r /tmp/req.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: npm audit
+        working-directory: web
+        run: npm audit --omit=dev --audit-level=high
+
+  docs:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DavidAnson/markdownlint-cli2-action@v20
+        with:
+          globs: |
+            **/*.md
+            .claude/**/*.md
+      - name: Internal links
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --offline --no-progress --exclude-path docs/blueprint --exclude-path web/node_modules '**/*.md'
+      - name: PR title is a Conventional Commit
+        if: github.event_name == 'pull_request'
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          echo "$TITLE" | grep -qE '^(build|chore|ci|docs|feat|fix|perf|refactor|revert|style|test)(\([a-z0-9-]+\))?!?: .+' \
+            || { echo "PR title must be a Conventional Commit: $TITLE"; exit 1; }
