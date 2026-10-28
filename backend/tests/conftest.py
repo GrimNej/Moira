@@ -81,3 +81,21 @@ def world(tmp_path: Path) -> World:
         system=system, memories=memories, queue=queue, clock=clock, embedder=HashEmbedder(256)
     )
     return World(clock, system, memories, queue, capture, owner, data)
+
+
+@pytest.fixture
+def services(world: World):  # type: ignore[no-untyped-def]
+    """A Services container around the world fixture (settings from the test env)."""
+    from moira.config import load_settings
+    from moira.services import Services
+
+    settings = load_settings()
+    return Services(
+        settings=settings,
+        clock=world.clock,
+        system=world.system,
+        memories=world.memories,
+        queue=world.queue,
+        embedder=world.capture.embedder,
+        capture=world.capture,
+    )
