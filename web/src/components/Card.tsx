@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'preact/hooks';
 import { api } from '../api/client';
 import type { Card as CardData } from '../api/types';
 import { focusTitle, rememberFocus, restoreFocus } from '../lib/a11y';
-import { KIND_LABEL } from '../lib/format';
+import { KIND_LABEL, linkPieces } from '../lib/format';
 import { setBack } from '../lib/telegram';
 import { short } from '../lib/time';
 import { reducedMotion } from '../lib/spring';
@@ -264,7 +264,17 @@ export function Card() {
             <h3>You sent, from {c.sent.sourceLabel}</h3>
             <div class="bubble-wrap">
               <p class="bubble">
-                {c.sent.text || '(no words)'}
+                {c.sent.text
+                  ? linkPieces(c.sent.text).map((piece, i) =>
+                      piece.href ? (
+                        <a key={i} href={piece.href} target="_blank" rel="noopener noreferrer">
+                          {piece.text}
+                        </a>
+                      ) : (
+                        piece.text
+                      ),
+                    )
+                  : '(no words)'}
                 <span class="time num">{c.sent.localTime}</span>
               </p>
             </div>
