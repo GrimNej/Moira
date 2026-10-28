@@ -32,6 +32,17 @@ def external_id(message: Message) -> str:
     return f"{message.chat.id}:{message.message_id}"
 
 
+def prepare_image(path: str) -> str | None:
+    """Downscale and strip EXIF right away; the original is deleted (§7.2.2)."""
+    from moira.errors import ValidationFailed
+    from moira.media.images import prepare
+
+    try:
+        return str(prepare(Path(path)))
+    except ValidationFailed:
+        return None
+
+
 def forward_info(message: Message) -> tuple[int | None, str | None]:
     origin = message.forward_origin
     if origin is None:
@@ -81,7 +92,9 @@ async def to_input(
         )
         if size is None:
             return None, texts.TEXT_ONLY
-        path = await download(bot, services, size.file_id, ".jpg")
+        path = prepare_image(await download(bot, services, size.file_id, ".jpg"))
+        if path is None:
+            return None, texts.TEXT_ONLY
         meta = {
             "mime": "image/jpeg",
             "bytes": size.file_size,
@@ -117,7 +130,9 @@ async def to_input(
         name = doc.file_name or "file"
         meta = {"mime": mime, "bytes": doc.file_size, "file_name": name}
         if mime in IMAGE_MIMES and (doc.file_size or 0) <= MAX_DOWNLOAD:
-            path = await download(bot, services, doc.file_id, IMAGE_MIMES[mime])
+            path = prepare_image(await download(bot, services, doc.file_id, IMAGE_MIMES[mime]))
+            if path is None:
+                return None, texts.TEXT_ONLY
             return CaptureInput(kind="photo", tmp_files=[path], media_meta=meta, **base), None
         if mime in ("image/heic", "image/heif") or name.lower().endswith((".heic", ".heif")):
             return None, texts.HEIC

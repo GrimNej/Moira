@@ -35,6 +35,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - T28–T29 answer and deep tiers: candidates with precomputed local dates, sources and verified/possible labels; ANSWER; citation validation (an invented citation becomes 'not found' with the closest matches); turns stored; deep tier with PLAN, lookup re-retrieval, and §8.4 SQL for lists and counts (the count comes from SQL); 'the one before/after that'; degraded mode emits error with fallback ids.
 - T30 POST /api/ask over SSE (clues, lit, status, answer, done; never buffered), degraded mode as an error event with fallback ids, Found it / Not it feedback and Save instead on turns.
 - T31 Telegram answers: typing action, the shared answer service, plain text ≤ 1,200 characters, closest matches as '• Title — 12 Oct (Instagram)', lists up to 10 lines, a Show in sky web_app button to /?star=…&from=tg and Save instead (turns the raw question into a nugget).
+- T32 voice and images: magic-byte sniffing; images downscaled to 1,280 px and re-encoded without EXIF (GPS) right after download, original deleted; voice converted with ffmpeg to 16 kHz mono WAV (split past 9.5 min), transcribed with up to 50 keywords from the memory, transcript masked and stored as the user's own words, WAV and original deleted; a silent note gets 🤔 and one line. Principle 2 tests for voice and photos; the ASR multipart request matches the documented schema.
 
 **Decisions**
 
@@ -48,5 +49,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T32
-**Built with** Claude Code (T01–T31 from Appendix M); reviewed by the developer.
+**Next** T33
+**Built with** Claude Code (T01–T32 from Appendix M); reviewed by the developer.

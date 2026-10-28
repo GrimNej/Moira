@@ -48,3 +48,27 @@ async def notify_filed(
 
             chat_id, message_id = raws[-1]["external_id"].split(":")
             await react(bot, int(chat_id), int(message_id), UPDATED)
+
+
+async def tell_user(services: Services, user: User, nugget: Any, what: str) -> None:
+    """One short line in Telegram when media could not be read (🤔 + the reason)."""
+    from moira.bot import texts
+    from moira.bot.reactions import UNSURE, react
+
+    bot = services.extras.get("bot")
+    if bot is None:
+        return
+    conn = services.memories.open(user.memory_path)
+    raws = [
+        r
+        for r in repo.raw_events_for(conn, nugget.id)
+        if r["channel"] == "telegram" and r["external_id"]
+    ]
+    if not raws:
+        return
+    chat_id, message_id = (int(x) for x in raws[0]["external_id"].split(":"))
+    await react(bot, chat_id, message_id, UNSURE)
+    message = {"silent_voice": texts.SILENT_VOICE, "video": texts.CANT_READ_VIDEO}.get(
+        what, texts.TEXT_ONLY
+    )
+    await bot.send_message(chat_id, message)

@@ -3,6 +3,7 @@
 Each task adds its factory to ``register``; ``jobs.handlers.build`` merges them.
 """
 
+import sqlite3
 from datetime import timedelta
 
 from moira.ai.client import LLM
@@ -135,9 +136,86 @@ def link_handlers(services: Services) -> dict[str, Handler]:
     }
 
 
+def asr_keywords(conn: sqlite3.Connection, now_ms: int) -> list[str]:
+    """§7.2.1: up to 50 terms from the user's memory, each ≤ 40 characters."""
+    import json
+    import re
+
+    from moira.db.repos import hubs as hubs_repo
+    from moira.db.repos import people as people_repo
+
+    words: list[str] = []
+    for p in people_repo.all_people(conn):
+        words += [p.display_name, *p.aliases]
+    words += [h.name for h in hubs_repo.active(conn) if h.kind != "shelf"]
+    tags: dict[str, int] = {}
+    for (raw,) in conn.execute("SELECT tags FROM enrichments").fetchall():
+        for t in json.loads(raw):
+            tags[t] = tags.get(t, 0) + 1
+    words += [t for t, _ in sorted(tags.items(), key=lambda kv: -kv[1])[:20]]
+    since = now_ms - 30 * 86_400_000
+    for (text,) in conn.execute(
+        "SELECT user_text FROM nuggets WHERE captured_at >= ? AND deleted_at IS NULL", (since,)
+    ).fetchall():
+        words += re.findall(r"(?<![.!?]\s)(?<!^)[A-Z][a-zA-Z]{2,}", text)
+    out = [w.strip()[:40] for w in dict.fromkeys(words) if w and w.strip()]
+    return out[:50]
+
+
+def media_handlers(services: Services) -> dict[str, Handler]:
+    from pathlib import Path
+
+    from moira.capture import exacts as exacts_mod
+    from moira.capture import secrets
+    from moira.media.audio import to_wav
+
+    async def transcribe_job(job: Job) -> None:
+        user = _user(services, job)
+        conn = services.memories.open(user.memory_path)
+        n = nuggets_repo.by_public_id(conn, job.ref or "")
+        files = [Path(f) for f in job.payload.get("files", [])]
+        try:
+            if n is None or n.deleted_at is not None:
+                return
+            llm: LLM = services.extras["llm"]
+            keywords = asr_keywords(conn, services.clock.now_ms())
+            texts = []
+            for f in files:
+                if not f.exists():
+                    continue
+                for wav in to_wav(f):
+                    try:
+                        t = await llm.transcribe(wav=wav, keywords=keywords, user_id=user.id)
+                        texts.append(t.text.strip())
+                    finally:
+                        wav.unlink(missing_ok=True)  # principle 2
+            transcript = " ".join(t for t in texts if t)
+            if not transcript:
+                silent = services.extras.get("tell_user")
+                if silent is not None:
+                    await silent(user, n, "silent_voice")
+                return
+            masked, found = secrets.mask(transcript)
+            now = services.clock.now_ms()
+            nuggets_repo.set_user_text_from_media(conn, n.id, masked, found, now)
+            nuggets_repo.insert_exacts(
+                conn,
+                n.id,
+                [e.as_tuple() for e in exacts_mod.extract(masked, user.tz)],
+                "user_text",
+            )
+            indexing.index_instant(conn, n.id, services.embedder)
+        finally:
+            for f in files:
+                f.unlink(missing_ok=True)
+
+    return {"transcribe": transcribe_job}
+
+
 def register(services: Services) -> None:
     factories = services.extras.setdefault("handler_factories", [])
     factories.clear()
     factories.append(link_handlers)
+    factories.append(media_handlers)
     for extra in services.extras.get("more_factories", []):
         factories.append(extra)
