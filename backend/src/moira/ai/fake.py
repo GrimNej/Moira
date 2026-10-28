@@ -319,8 +319,15 @@ def fake_plan(text: str) -> PlanOutput:
         if re.search(r"\b(all my|list|every)\b", q)
         else "lookup"
     )
-    words = [w for w in re.findall(r"[a-z0-9]+", q) if w not in STOP and len(w) > 2]
+    from moira.search.lexicon import STOPWORDS
+
     time = re.search(r"(this year|last year|last month|this month|last week|\d+ \w+ ago)", q)
+    rest = q.replace(time.group(1), " ") if time else q
+    words = [
+        w
+        for w in re.findall(r"[a-z0-9]+", rest)
+        if w not in STOP and w not in STOPWORDS and w not in ("many", "list") and len(w) > 2
+    ]
     return PlanOutput(
         mode=mode,
         keywords=words[:8],
