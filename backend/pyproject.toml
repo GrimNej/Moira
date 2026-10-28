@@ -1,0 +1,87 @@
+[project]
+name = "moira"
+version = "0.1.0"
+description = "A personal memory you text like a friend, drawn as a night sky."
+license = "MIT"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "python-multipart>=0.0.9",
+    "aiogram>=3.13",
+    "httpx>=0.27",
+    "openai>=1.66",
+    "pydantic>=2.8",
+    "pydantic-settings>=2.4",
+    "structlog>=24.1",
+    "model2vec>=0.4",
+    "sqlite-vec>=0.1.6",
+    "numpy>=1.26",
+    "pillow>=10.4",
+    "selectolax>=0.3.21",
+    "phonenumbers>=8.13",
+    "tzdata>=2024.1",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8",
+    "pytest-asyncio>=0.23",
+    "pytest-cov",
+    "hypothesis>=6",
+    "respx>=0.21",
+    "ruff>=0.6",
+    "mypy>=1.11",
+    "pip-audit",
+    "pre-commit",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/moira"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = ["contract: calls the real Meta API with synthetic data (spends credits)"]
+addopts = "--strict-markers"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests", "scripts"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "S", "BLE", "DTZ", "T20", "TID", "SIM", "RUF"]
+ignore = ["S101"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"datetime.datetime.now".msg = "Use the injected Clock (moira.clock); never datetime.now() outside clock.py."
+"datetime.datetime.utcnow".msg = "Use the injected Clock (moira.clock)."
+"time.time".msg = "Use the injected Clock (moira.clock)."
+
+[tool.ruff.lint.per-file-ignores]
+"src/moira/clock.py" = ["TID251"]
+
+[tool.mypy]
+python_version = "3.12"
+mypy_path = "src"
+packages = ["moira"]
+plugins = ["pydantic.mypy"]
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+check_untyped_defs = true
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["moira.domain.*", "moira.search.*", "moira.memory.*", "moira.capture.*", "moira.ai.*"]
+strict = true
+
+[tool.coverage.run]
+source = ["moira"]
+branch = true
