@@ -1,0 +1,40 @@
+{"id": "q01", "question": "josh's email?", "asked_offset_days": 0, "expected_keys": ["A7b"], "category": "exact"}
+{"id": "q02", "question": "#38BDF8", "asked_offset_days": 0, "expected_keys": ["A4"], "category": "exact"}
+{"id": "q03", "question": "maya.chen@example.com", "asked_offset_days": 0, "expected_keys": ["A8"], "category": "exact"}
+{"id": "q04", "question": "XMP", "asked_offset_days": 0, "expected_keys": ["A2b"], "category": "exact"}
+{"id": "q05", "question": "the 165hz monitor setting", "asked_offset_days": 0, "expected_text": ["165hz"], "category": "exact"}
+{"id": "q06", "question": "Guy's phone number", "asked_offset_days": 0, "expected_text": ["9801234567"], "category": "exact"}
+{"id": "q07", "question": "alex.k@", "asked_offset_days": 0, "expected_text": ["alex.k@example.com"], "category": "exact"}
+{"id": "q08", "question": "#F472B6", "asked_offset_days": 0, "expected_keys": ["A4"], "category": "exact"}
+{"id": "q09", "question": "that FPS fix", "asked_offset_days": 0, "expected_keys": ["A2b", "A2c", "A2a"], "category": "vague"}
+{"id": "q10", "question": "the reel about ai video editing tools", "asked_offset_days": 0, "expected_keys": ["A1"], "category": "vague"}
+{"id": "q11", "question": "palette from github", "asked_offset_days": 0, "expected_keys": ["A4"], "category": "vague"}
+{"id": "q12", "question": "lofi song with saxophone from the cafe", "asked_offset_days": 0, "expected_keys": ["A9"], "category": "vague"}
+{"id": "q13", "question": "what's my favorite fruit?", "asked_offset_days": 0, "expected_keys": ["A5b", "A5c"], "category": "vague"}
+{"id": "q14", "question": "who are my best friends?", "asked_offset_days": 0, "expected_keys": ["A6"], "category": "vague"}
+{"id": "q15", "question": "nvidia latency setting", "asked_offset_days": 0, "expected_keys": ["A3"], "category": "vague"}
+{"id": "q16", "question": "the background remover reel", "asked_offset_days": 0, "expected_text": ["background remover"], "category": "vague"}
+{"id": "q17", "question": "cafe with good wifi", "asked_offset_days": 0, "expected_text": ["good wifi in jhamsikhel"], "category": "vague"}
+{"id": "q18", "question": "sqlite full text search video", "asked_offset_days": 0, "expected_text": ["sqlite full text search"], "category": "vague"}
+{"id": "q19", "question": "insta link about AI, ~2 weeks ago", "asked_offset_days": 0, "expected_keys": ["A1"], "category": "time_source"}
+{"id": "q20", "question": "insta link about AI, about 3 weeks ago", "asked_offset_days": 0, "expected_keys": ["A1"], "category": "time_source"}
+{"id": "q21", "question": "youtube video about fps around 10 days ago", "asked_offset_days": 0, "expected_keys": ["A2a"], "category": "time_source"}
+{"id": "q22", "question": "voice note about the cafe song last week", "asked_offset_days": 0, "expected_keys": ["A9"], "category": "time_source"}
+{"id": "q23", "question": "github link from a few days ago", "asked_offset_days": 0, "expected_keys": ["A4"], "category": "time_source"}
+{"id": "q24", "question": "the screenshot of an email signature, a couple of months ago", "asked_offset_days": 0, "expected_keys": ["A8"], "category": "time_source"}
+{"id": "q25", "question": "voice note about nvidia, 2 weeks ago", "asked_offset_days": 0, "expected_keys": ["A3"], "category": "time_source"}
+{"id": "q26", "question": "what did I save today?", "asked_offset_days": 0, "expected_keys": ["A10a", "A10b"], "category": "time_source"}
+{"id": "q27", "question": "josh's email", "asked_offset_days": 0, "expected_keys": ["A7b"], "category": "people"}
+{"id": "q28", "question": "what does josh do now?", "asked_offset_days": 0, "expected_keys": ["A7b"], "category": "people"}
+{"id": "q29", "question": "maya talent lead contact", "asked_offset_days": 0, "expected_keys": ["A8"], "category": "people"}
+{"id": "q30", "question": "when is alex's birthday?", "asked_offset_days": 0, "expected_text": ["Alex's birthday"], "category": "people"}
+{"id": "q31", "question": "where did guy get a job?", "asked_offset_days": 0, "expected_text": ["Guy got a job"], "category": "people"}
+{"id": "q32", "question": "how many books did I save?", "asked_offset_days": 0, "expected_text": ["read the book"], "category": "list_count"}
+{"id": "q33", "question": "list all my todos", "asked_offset_days": 0, "expected_text": ["todo:"], "category": "list_count"}
+{"id": "q34", "question": "what was my favorite fruit before?", "asked_offset_days": 0, "expected_keys": ["A5a"], "category": "past"}
+{"id": "q35", "question": "josh's old email", "asked_offset_days": 0, "expected_keys": ["A7a"], "category": "past"}
+{"id": "q36", "question": "my passport number?", "asked_offset_days": 0, "expected_keys": [], "category": "unanswerable"}
+{"id": "q37", "question": "the restaurant in tokyo I liked", "asked_offset_days": 0, "expected_keys": [], "category": "unanswerable"}
+{"id": "q38", "question": "my car's license plate", "asked_offset_days": 0, "expected_keys": [], "category": "unanswerable"}
+{"id": "q39", "question": "the hackathon deadline", "asked_offset_days": 0, "expected_keys": ["A10b"], "category": "vague"}
+{"id": "q40", "question": "coffee order", "asked_offset_days": 0, "expected_text": ["oat cortado", "flat white"], "category": "vague"}

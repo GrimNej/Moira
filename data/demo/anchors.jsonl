@@ -1,0 +1,16 @@
+{"key": "A1", "text": "https://www.instagram.com/reel/DQx7Lm2kP4a/", "source": "instagram", "day_offset": 14, "hour": 21, "minute": 40, "research": {"method": "web_search", "title": "5 AI tools for video editing", "author": "@editlab.demo", "findings": "CREATOR: @editlab.demo · TOPIC: five AI tools for video editing · SUMMARY: The caption lists five AI tools that cut, caption and color-grade videos.", "verified": 0, "sources": [{"url": "https://www.instagram.com/editlab.demo/", "title": "editlab.demo"}]}}
+{"key": "A2a", "text": "https://www.youtube.com/watch?v=Fp5Max0Gd1E max fps setup guide", "source": "youtube", "day_offset": 14, "hour": 21, "minute": 12, "research": {"method": "youtube_oembed", "title": "Max FPS setup guide (2026)", "author": "TechTune Demo", "findings": "YouTube video \"Max FPS setup guide (2026)\" by TechTune Demo.", "verified": null, "sources": []}}
+{"key": "A2b", "text": "fix: turn on XMP in BIOS", "source": "typed", "day_offset": 14, "hour": 21, "minute": 14}
+{"key": "A2c", "text": "fix: Game Mode on, fullscreen optimizations off", "source": "typed", "day_offset": 14, "hour": 21, "minute": 15}
+{"key": "A3", "text": "set nvidia low latency to ultra and cap fps at 162 for gsync", "source": "voice", "day_offset": 8, "hour": 20, "minute": 5}
+{"key": "A4", "text": "https://github.com/demo-design/portfolio-skill palette #0F172A #38BDF8 #F472B6", "source": "github", "day_offset": 6, "hour": 16, "minute": 30, "research": {"method": "github_api", "title": "demo-design/portfolio-skill", "author": "demo-design", "findings": "A design skill for portfolio sites. Topics: design, portfolio. Language: TypeScript", "verified": null, "sources": []}}
+{"key": "A5a", "text": "my favorite fruit is apple", "source": "typed", "day_offset": 300, "hour": 13, "minute": 10}
+{"key": "A5b", "text": "my favorite fruit is now banana", "source": "typed", "day_offset": 240, "hour": 18, "minute": 2}
+{"key": "A5c", "text": "oh and I like oranges too", "source": "voice", "day_offset": 135, "hour": 9, "minute": 45}
+{"key": "A6", "text": "my best friends are Alex, Guy and Josh, tight since school", "source": "typed", "day_offset": 255, "hour": 22, "minute": 20}
+{"key": "A7a", "text": "Josh's email is josh.k.old@example.com", "source": "typed", "day_offset": 365, "hour": 11, "minute": 0}
+{"key": "A7b", "text": "Josh's new email is josh.r@example.com, he's freelancing as a designer now", "source": "typed", "day_offset": 38, "hour": 19, "minute": 25}
+{"key": "A8", "text": "", "source": "screenshot", "day_offset": 90, "hour": 15, "minute": 40, "image_text": "Maya Chen · Talent lead · maya.chen@example.com"}
+{"key": "A9", "text": "song in the cafe, lofi with saxophone, ask the barista next time", "source": "voice", "day_offset": 4, "hour": 17, "minute": 50}
+{"key": "A10a", "text": "today: finish hackathon blueprint, gym at 6", "source": "typed", "day_offset": 0, "hour": 9, "minute": 5}
+{"key": "A10b", "text": "deadline nov 4, 9pm ET", "source": "typed", "day_offset": 0, "hour": 9, "minute": 6}
