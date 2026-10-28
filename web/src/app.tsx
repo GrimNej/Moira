@@ -10,7 +10,8 @@ import { Welcome } from './components/Welcome';
 import { navigate, route } from './router';
 import { engine } from './sky/engine';
 import { booted, me } from './state/session';
-import { lit, loadSky, sky, why } from './state/sky';
+import { lit, loadSky, refreshSky, sky, why } from './state/sky';
+import { api } from './api/client';
 import { narrow, panelState, settingsOpen, showToast, tab } from './state/ui';
 import { retryQueue } from './state/capture';
 
@@ -24,6 +25,16 @@ function Main() {
           if (r.from === 'tg') why.value = '';
           engine()?.select(id);
         }, 900);
+      }
+      const undo = new URLSearchParams(location.search).get('undo');
+      if (undo) {
+        // An undo link from the owner's daily digest (§7.9): revert one tidy change.
+        history.replaceState(null, '', '/');
+        void api
+          .undo(undo)
+          .then(() => refreshSky())
+          .then(() => showToast('Undone'))
+          .catch(() => showToast('That change could not be undone.'));
       }
       if (r.name === 'home' && r.saved) {
         // Back from the Android share target (§4.3.12): the star arrives over the live stream.

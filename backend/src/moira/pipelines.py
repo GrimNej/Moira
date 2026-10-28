@@ -217,5 +217,8 @@ def register(services: Services) -> None:
     factories.clear()
     factories.append(link_handlers)
     factories.append(media_handlers)
+    from moira.jobs import maintenance
+
+    factories.append(maintenance.handlers)
     for extra in services.extras.get("more_factories", []):
         factories.append(extra)

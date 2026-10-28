@@ -70,6 +70,21 @@ def wire(services: Services, llm: Any = None) -> Services:
     from moira import pipelines
 
     pipelines.register(services)
+    if settings.app_env != "test":
+        from moira.jobs import timers
+
+        services.extras.setdefault("timers", timers.run)
+
+    def _cap_hit(name: str) -> None:
+        from moira.notify import alert_owner
+
+        task = asyncio.get_running_loop().create_task(
+            alert_owner(services, f"cap:{name}", f"Moira: {name} reached. Saving still works.")
+        )
+        services.extras.setdefault("_alerts", set()).add(task)
+        task.add_done_callback(services.extras["_alerts"].discard)
+
+    budget.on_cap_hit.append(_cap_hit)
     return services
 
 
