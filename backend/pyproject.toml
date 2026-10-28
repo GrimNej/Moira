@@ -67,6 +67,8 @@ ignore = ["S101"]
 [tool.ruff.lint.per-file-ignores]
 "src/moira/clock.py" = ["TID251"]
 "scripts/*" = ["T201", "S603", "S607"]
+# Repositories build only "?" placeholder lists; every value is a bound parameter.
+"src/moira/db/repos/*" = ["S608"]
 "tests/*" = ["S105", "S106"]
 
 [tool.mypy]

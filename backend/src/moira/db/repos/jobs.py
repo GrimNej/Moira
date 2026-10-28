@@ -139,7 +139,7 @@ def pending_for_ref(
 ) -> list[Job]:
     marks = ",".join("?" * len(kinds))
     rows = conn.execute(
-        f"SELECT * FROM jobs WHERE user_id=? AND ref=? AND kind IN ({marks})"  # noqa: S608
+        f"SELECT * FROM jobs WHERE user_id=? AND ref=? AND kind IN ({marks})"
         " AND status IN ('queued','running')",
         (user_id, ref, *kinds),
     ).fetchall()
