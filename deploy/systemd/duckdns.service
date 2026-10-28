@@ -1,0 +1,11 @@
+[Unit]
+Description=Update the DuckDNS record (blueprint §13.13 step 8)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+DynamicUser=yes
+EnvironmentFile=/etc/moira/duckdns.env
+# Empty ip= means DuckDNS detects the address; the response is OK or KO.
+ExecStart=/bin/sh -c 'test "$(curl -fsS --max-time 20 "https://www.duckdns.org/update?domains=${DUCKDNS_DOMAIN}&token=${DUCKDNS_TOKEN}&ip=")" = OK'

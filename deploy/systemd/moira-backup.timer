@@ -1,0 +1,10 @@
+[Unit]
+Description=Moira nightly backup at 02:30 Nepal time
+
+[Timer]
+OnCalendar=*-*-* 02:30:00 Asia/Kathmandu
+Persistent=true
+RandomizedDelaySec=120
+
+[Install]
+WantedBy=timers.target

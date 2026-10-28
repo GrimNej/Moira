@@ -1,0 +1,25 @@
+[Unit]
+Description=Moira (API + bot + worker)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+User=moira
+WorkingDirectory=/opt/moira/current/backend
+EnvironmentFile=/etc/moira/env
+Environment=HF_HOME=/var/lib/moira/models HF_HUB_OFFLINE=1
+ExecStart=/opt/moira/current/backend/.venv/bin/uvicorn moira.main:app --host 127.0.0.1 --port 8000 --workers 1 --proxy-headers --forwarded-allow-ips 127.0.0.1
+Restart=on-failure
+RestartSec=5
+MemoryHigh=600M
+MemoryMax=650M
+Nice=0
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/moira
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
