@@ -209,7 +209,51 @@ def media_handlers(services: Services) -> dict[str, Handler]:
             for f in files:
                 f.unlink(missing_ok=True)
 
-    return {"transcribe": transcribe_job}
+    async def read_video_job(job: Job) -> None:
+        """§7.2.3: ffprobe → Files API → VIDEO → content_text; remote and local file deleted."""
+        from moira.ai import video as video_ai
+        from moira.errors import AiBudgetExceeded, ValidationFailed
+        from moira.media import video as video_media
+
+        user = _user(services, job)
+        conn = services.memories.open(user.memory_path)
+        n = nuggets_repo.by_public_id(conn, job.ref or "")
+        files = [Path(f) for f in job.payload.get("files", [])]
+        try:
+            if n is None or n.deleted_at is not None or not files or not files[0].exists():
+                return
+            try:
+                video_media.check(files[0])
+                report = await video_ai.read(services.extras["llm"], files[0], user_id=user.id)
+            except ValidationFailed:
+                tell = services.extras.get("tell_user")
+                if tell is not None:
+                    await tell(user, n, "video")
+                return
+            except AiBudgetExceeded:
+                log.info("video_skipped", reason="budget")
+                return
+            text = report.content_text()
+            if not text:
+                return
+            now = services.clock.now_ms()
+            nuggets_repo.append_content_text(conn, n.id, text, now)
+            nuggets_repo.insert_research(
+                conn, n.id, method="video", status="ok", now=now,
+                title=report.topic, author=report.creator, findings=text,
+            )  # fmt: skip
+            nuggets_repo.insert_exacts(
+                conn,
+                n.id,
+                [e.as_tuple() for e in exacts_mod.extract(text, user.tz)],
+                "content_text",
+            )
+            indexing.index_instant(conn, n.id, services.embedder)
+        finally:
+            for f in files:
+                f.unlink(missing_ok=True)  # principle 2: media is never kept
+
+    return {"transcribe": transcribe_job, "read_video": read_video_job}
 
 
 def register(services: Services) -> None:
