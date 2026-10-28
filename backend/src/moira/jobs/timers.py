@@ -2,7 +2,7 @@
 
 - ``nightly``: per active memory at 03:30 in the user's time zone
 - ``digest``: 08:00 Nepal time
-- ``sandbox_gc``: hourly · ``tmp_sweep``: every 10 minutes
+- ``sandbox_gc``: hourly · ``tmp_sweep``: every 10 minutes · ``export_weekly``: Sunday 08:00 NPT
 Global jobs are filed under the owner (``jobs.user_id`` is required).
 """
 
@@ -39,6 +39,8 @@ def due(services: Services, prev: datetime, now: datetime) -> list[tuple[int, st
     if owner is not None:
         if crossed(prev, now, NPT, 8, 0):
             out.append((owner.id, "digest"))
+            if now.astimezone(NPT).weekday() == 6:  # Sunday: the owner's second copy (§13.14)
+                out.append((owner.id, "export_weekly"))
         if prev.replace(minute=0, second=0, microsecond=0) != now.replace(
             minute=0, second=0, microsecond=0
         ):

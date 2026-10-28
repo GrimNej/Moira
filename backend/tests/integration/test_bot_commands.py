@@ -170,10 +170,10 @@ async def test_stats_is_owner_only(services: Services) -> None:
     b2.send_message.assert_not_awaited()
 
 
-async def test_export_stub_points_to_settings(services: Services) -> None:
+async def test_export_with_nothing_new_says_so(services: Services) -> None:
     b = bot()
     await handlers_commands.cmd_export(msg(), b, services)
-    assert "/settings" in last_text(b)
+    assert last_text(b) == texts.EXPORT_NOTHING_NEW
 
 
 async def test_hard_delete_after_ten_minutes(services: Services, world: World) -> None:
