@@ -1,6 +1,32 @@
 {
   "components": {
     "schemas": {
+      "AskIn": {
+        "properties": {
+          "conversation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Conversation Id"
+          },
+          "question": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Question",
+            "type": "string"
+          }
+        },
+        "required": [
+          "question"
+        ],
+        "title": "AskIn",
+        "type": "object"
+      },
       "Caps": {
         "properties": {
           "cap_today": {
@@ -17,6 +43,23 @@
           "cap_today"
         ],
         "title": "Caps",
+        "type": "object"
+      },
+      "FeedbackIn": {
+        "properties": {
+          "value": {
+            "enum": [
+              "found",
+              "not_it"
+            ],
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value"
+        ],
+        "title": "FeedbackIn",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -74,6 +117,19 @@
           "tz"
         ],
         "title": "MePatch",
+        "type": "object"
+      },
+      "SavedOut": {
+        "properties": {
+          "nugget_id": {
+            "title": "Nugget Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "nugget_id"
+        ],
+        "title": "SavedOut",
         "type": "object"
       },
       "TelegramIn": {
@@ -191,6 +247,42 @@
   },
   "openapi": "3.1.0",
   "paths": {
+    "/api/ask": {
+      "post": {
+        "operationId": "ask_api_ask_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AskIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Ask"
+      }
+    },
     "/api/auth/link": {
       "post": {
         "operationId": "link_api_auth_link_post",
@@ -352,6 +444,88 @@
           }
         },
         "summary": "Patch Me"
+      }
+    },
+    "/api/turns/{turn_id}/feedback": {
+      "post": {
+        "operationId": "feedback_api_turns__turn_id__feedback_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "turn_id",
+            "required": true,
+            "schema": {
+              "title": "Turn Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FeedbackIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Feedback"
+      }
+    },
+    "/api/turns/{turn_id}/save-instead": {
+      "post": {
+        "description": "A misread question becomes a memory (\u00a74.2.3).",
+        "operationId": "save_instead_api_turns__turn_id__save_instead_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "turn_id",
+            "required": true,
+            "schema": {
+              "title": "Turn Id",
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Instead"
       }
     }
   }
