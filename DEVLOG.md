@@ -42,6 +42,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - Saving from the web: POST /api/nuggets/media (sniffed, EXIF-stripped, cleaned up on error), offline queue e2e, comet waits for the star (fixes a filed-before-response race). PWA: manifest with Android share_target, service worker (shell only, never /api), icons; POST /share with an Origin check (Q-013). Real-phone checks J16/J25 wait for the developer
 - Sandboxes and judges: POST /api/sandbox copies templates/demo.db with the SQLite backup API and rebases every time column by now − template_now − 2 h (coverage test over the schema); judges' invites seed the same copy; Kathmandu time; at most 200 active, oldest evicted; sandbox_gc deletes expired files and users; per-IP limit from SANDBOX_CREATE_PER_IP_HOUR
 - Nightly work and digest: ai/tidy.py (model proposes; code applies merges at confidence ≥ 0.85, same kind, name similarity ≥ 0.6 or cosine ≥ 0.85; renames at ≥ 0.9; at most 5; undoable), nightly job (importance, tidy, index consistency, secret audit count), digest at 08:00 NPT with spend, cache ratio, research, dead jobs, tidy undo links, last backup, disk, RSS; sandbox_gc and tmp_sweep; in-process timers; owner alerts throttled to one per type per hour, wired to budget cap hits
+- Backups, restore and export: moira.backup.backup (online snapshot, integrity_check, tar | zstd -19 | age, rclone daily/weekly with 14/8 retention, last.json + meta, Telegram alert on failure), backup.sh, restore.sh, restore_drill.sh, RESTORE.md; GET /api/export (JSONL + Markdown + SQLite, refused for sandboxes, deleted after sending); /export and the Sunday export_weekly send incremental zips; forget everything with a 24 h grace and cancel. The timed restore drill needs the server (developer)
 
 **Decisions**
 
@@ -55,5 +56,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T50
+**Next** T51
 **Built with** Claude Code (T01–T35–T43 from Appendix M); reviewed by the developer.

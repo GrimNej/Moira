@@ -200,12 +200,11 @@ async def cmd_export(message: Message, bot: Bot, services: Services) -> None:
     if user is None:
         await bot.send_message(message.chat.id, texts.START_FIRST)
         return
-    sender = services.extras.get("telegram_export")
-    if sender is not None:
-        await sender(message, bot, services, user)
+    if user.kind == "sandbox":
         return
-    link = f"{services.settings.public_base_url}/settings"
-    await bot.send_message(message.chat.id, texts.EXPORT_LINK.format(link=link))
+    from moira.jobs.maintenance import send_export
+
+    await send_export(services, user, bot=bot, chat_id=message.chat.id)
 
 
 async def cmd_ask(message: Message, bot: Bot, services: Services) -> None:

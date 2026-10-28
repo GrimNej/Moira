@@ -37,6 +37,7 @@ LANES: dict[str, str] = {
     "tmp_sweep": "default",
     "digest": "default",
     "export_weekly": "default",
+    "forget_everything": "file",
 }
 DEBOUNCE_MS = 20_000
 DEBOUNCE_MAX_MS = 90_000

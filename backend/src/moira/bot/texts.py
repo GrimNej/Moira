@@ -40,7 +40,9 @@ TIMEZONE_HELP = "Your time zone is {tz}. Change it with /timezone Asia/Kathmandu
 SHOW_IN_SKY = "Show in sky"
 SAVE_INSTEAD = "Save instead"
 SAVED_INSTEAD = "Saved."
-EXPORT_LINK = "Your export is ready in the web app: {link}"
+EXPORT_LINK = "Your export is too big for Telegram. Download it from the web app: {link}"
+EXPORT_SENT = "Everything new since your last export, as JSONL and Markdown."
+EXPORT_NOTHING_NEW = "Nothing new since your last export."
 SKY_BUTTON = "Sky"
 HELP = (
     "Send me anything: text, links, screenshots, voice notes, forwards. I save it and react "

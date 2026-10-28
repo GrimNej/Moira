@@ -167,6 +167,49 @@ async def send_digest(services: Services) -> str:
     return text
 
 
+async def forget_everything(services: Services, user: User) -> None:
+    """After the 24 h grace (§10.4): the memory file is deleted and an empty one made."""
+    async with services.memories.lock(user.memory_path):
+        services.memories.close(user.memory_path)
+        path = services.memories.path(user.memory_path)
+        for p in (path, path.with_name(path.name + "-wal"), path.with_name(path.name + "-shm")):
+            p.unlink(missing_ok=True)
+        services.memories.open(user.memory_path)
+    log.info("forgot_everything")
+
+
+async def send_export(services: Services, user: User, *, bot: object, chat_id: int) -> str:
+    """Incremental export (new and changed since the last one) to the user's Telegram chat."""
+    from aiogram.types import FSInputFile
+
+    from moira.backup.export import MAX_TELEGRAM_BYTES, build, records
+    from moira.bot import texts
+
+    chat = users_repo.chat(services.system, chat_id)
+    since = chat["last_export_at"] if chat is not None else None
+    conn = services.memories.open(user.memory_path)
+    if not records(conn, since):
+        await bot.send_message(chat_id, texts.EXPORT_NOTHING_NEW)  # type: ignore[attr-defined]
+        return "empty"
+    path = build(conn, Path(services.tmp_dir), user.tz, since=since, sqlite=False)
+    try:
+        if path.stat().st_size > MAX_TELEGRAM_BYTES:
+            link = f"{services.settings.public_base_url}/settings"
+            await bot.send_message(chat_id, texts.EXPORT_LINK.format(link=link))  # type: ignore[attr-defined]
+            return "link"
+        day = services.clock.now().date().isoformat()
+        await bot.send_document(  # type: ignore[attr-defined]
+            chat_id,
+            FSInputFile(path, filename=f"moira-export-{day}.zip"),
+            caption=texts.EXPORT_SENT,
+        )
+        with services.system:
+            users_repo.set_chat_last_export(services.system, chat_id, services.clock.now_ms())
+        return "sent"
+    finally:
+        path.unlink(missing_ok=True)
+
+
 def handlers(services: Services) -> dict[str, Handler]:
     def _user(job: Job) -> User:
         user = users_repo.get(services.system, job.user_id)
@@ -186,9 +229,21 @@ def handlers(services: Services) -> dict[str, Handler]:
     async def tmp_sweep_job(job: Job) -> None:
         tmp_sweep(services)
 
+    async def forget_everything_job(job: Job) -> None:
+        await forget_everything(services, _user(job))
+
+    async def export_weekly_job(job: Job) -> None:
+        user = _user(job)
+        bot = services.extras.get("bot")
+        chat = users_repo.chat_for_user(services.system, user.id)
+        if bot is not None and chat is not None:
+            await send_export(services, user, bot=bot, chat_id=chat["chat_id"])
+
     return {
         "nightly": nightly_job,
         "digest": digest_job,
         "sandbox_gc": sandbox_gc_job,
         "tmp_sweep": tmp_sweep_job,
+        "forget_everything": forget_everything_job,
+        "export_weekly": export_weekly_job,
     }

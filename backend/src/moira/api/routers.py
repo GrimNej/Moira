@@ -7,6 +7,7 @@ def all_routers() -> list[APIRouter]:
     from moira.api import (
         routes_admin,
         routes_ask,
+        routes_export,
         routes_hubs,
         routes_nuggets,
         routes_sandbox,
@@ -24,4 +25,5 @@ def all_routers() -> list[APIRouter]:
         routes_admin.router,
         routes_share.router,
         routes_sandbox.router,
+        routes_export.router,
     ]

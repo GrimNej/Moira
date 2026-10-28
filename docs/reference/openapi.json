@@ -613,6 +613,53 @@
         "summary": "Get Events"
       }
     },
+    "/api/export": {
+      "get": {
+        "operationId": "export_api_export_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Export"
+      }
+    },
+    "/api/forget-everything": {
+      "delete": {
+        "operationId": "cancel_forget_everything_api_forget_everything_delete",
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Cancel Forget Everything"
+      },
+      "post": {
+        "operationId": "forget_everything_api_forget_everything_post",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "integer"
+                  },
+                  "title": "Response Forget Everything Api Forget Everything Post",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Forget Everything"
+      }
+    },
     "/api/health": {
       "get": {
         "operationId": "health_api_health_get",
