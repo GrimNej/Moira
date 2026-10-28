@@ -1,0 +1,49 @@
+# Hooks from blueprint §13.7. Install with `make setup` (pre-commit + commit-msg).
+default_install_hook_types: [pre-commit, commit-msg]
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+        exclude: ^docs/blueprint/|^docs/design/prototype/|^docs/reference/openapi\.json$
+      - id: check-added-large-files
+        args: [--maxkb=500]
+      - id: detect-private-key
+      - id: check-yaml
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+  - repo: https://github.com/compilerla/conventional-pre-commit
+    rev: v3.6.0
+    hooks:
+      - id: conventional-pre-commit
+        stages: [commit-msg]
+        args: [build, chore, ci, docs, feat, fix, perf, refactor, revert, style, test]
+  - repo: local
+    hooks:
+      # ruff runs from the project venv so the hook and CI use the same version.
+      - id: ruff
+        name: ruff
+        entry: bash -c 'cd backend && uv run ruff check --fix . && uv run ruff format .'
+        language: system
+        files: ^backend/.*\.py$
+        pass_filenames: false
+      - id: mypy
+        name: mypy (changed backend files)
+        entry: bash -c 'cd backend && uv run mypy src'
+        language: system
+        files: ^backend/src/.*\.py$
+        pass_filenames: false
+      - id: prettier
+        name: prettier
+        entry: bash -c 'cd web && npx prettier --check .'
+        language: system
+        files: ^web/
+        pass_filenames: false
+      - id: eslint
+        name: eslint
+        entry: bash -c 'cd web && npx eslint .'
+        language: system
+        files: ^web/.*\.(ts|tsx)$
+        pass_filenames: false
