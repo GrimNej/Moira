@@ -17,7 +17,7 @@ Every route except health, sign-in and the sandbox needs a session: the `moira_s
 | `POST /api/sandbox` | none | 5/hour IP | → `201 {user}` + cookie | Sample memory copy (§11.4) |
 | `GET /api/me` | user | — | → `{id, kind, display_name, tz, caps: {spent_today, cap_today}, version}` | |
 | `PATCH /api/me` | user | — | `{tz}` → `{…}` | IANA name validated |
-| `GET /api/sky?since=<cursor>` | user | 60/min | → sky payload (§7.7.4) | |
+| `GET /api/sky?since=<cursor>` | user | 60/min | → sky payload (§7.7.4), plus `stars.title` and `stars.source` columns (Q-012) | |
 | `GET /api/events` | user | 5 open streams | SSE: `filed {star}`, `updated {id}`, `removed {id}`, `hub {hub}`, `ping` every 25 s | Live updates |
 | `GET /api/nuggets/{id}` | user | 120/min | → `Card` (Appendix N.4; the sections of §4.3.6) | |
 | `POST /api/nuggets/{id}/opened` | user | 120/min | → `204` | Increments `open_count` |
