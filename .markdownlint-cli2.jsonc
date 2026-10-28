@@ -1,0 +1,12 @@
+{
+  // §13.3: markdownlint with line length off.
+  "config": {
+    "default": true,
+    "MD013": false,
+    "MD024": { "siblings_only": true },
+    "MD033": false,
+    "MD041": false
+  },
+  // The blueprint is a frozen planning document; it is linted by review, not CI.
+  "ignores": ["**/node_modules/**", "docs/blueprint/**", "web/dist/**"]
+}

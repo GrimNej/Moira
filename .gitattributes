@@ -1,0 +1,14 @@
+* text=auto eol=lf
+
+*.sh   text eol=lf
+*.py   text eol=lf
+*.png  binary
+*.jpg  binary
+*.webp binary
+*.gif  binary
+*.woff2 binary
+*.db   binary
+
+uv.lock           linguist-generated=true
+package-lock.json linguist-generated=true
+docs/reference/openapi.json linguist-generated=true
