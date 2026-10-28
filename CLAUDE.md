@@ -3,6 +3,7 @@
 @AGENTS.md
 
 ## Working with Claude Code here
+
 - One task from blueprint Appendix M per session: the human types `/task T08`. Stop when its "Done when" passes.
   The human reviews and merges, then clears the session before the next task.
 - Large tasks (T13, T23, T28, T30, T36, T42, T43, T47): write a short plan first and wait for approval.
