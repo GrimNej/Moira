@@ -1,0 +1,1663 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Moira</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="theme-color" content="#0b0b0c">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jost:wght@400;500&display=swap">
+<style>
+/*
+  Moira — design reference (planning prototype, sample data only).
+
+  Made on 27 Oct 2026, during the hackathon's planning phase, as the visual reference for
+  docs/blueprint/BLUEPRINT.md §4.3 and Appendix H. It is not product code: the product is built in web/
+  from the blueprint, one task at a time. Port its behaviour and values, not its code structure.
+
+  The idea: the interface is a matte frame and the sky is a window cut into it, darker than the frame.
+  Colour lives only in the data: every star takes the colour of its age, the way real stars run from
+  blue-white to orange. New memories burn blue-white; old ones glow amber. The timeline under the sky
+  is the legend: it is the real count of saves per week, drawn in the same colours.
+
+  Desktop: conversation column on the left (Ask / Recent), the sky window on the right, the card floats
+  inside the window. Phone: the sky is full-bleed, the composer sits at the bottom, the conversation and
+  the card are sheets you drag.
+
+  Type: Jost (a Futura revival; the space-age face of star charts and the Apollo plaque) for the wordmark,
+  constellation names, card titles and the one big sentence. The system face for everything else.
+  No monospace, no tracked capitals, no gradients on chrome, no glass, no glows on chrome.
+*/
+:root{
+  color-scheme:dark;
+  --ground:#0b0b0c;      /* the frame */
+  --sky:#000;            /* the window */
+  --surface:#151516;     /* card, sheets */
+  --raised:#1e1e20;      /* controls, bubbles, hovered rows */
+  --raised-2:#2b2b2e;    /* pressed, selected */
+  --text:#f4f4f5;
+  --muted:#b4b4b8;       /* 9.5:1 on the frame */
+  --faint:#949498;       /* 6.0:1 on surfaces */
+  --display:"Jost","Futura","Century Gothic",system-ui,sans-serif;
+  --ui:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+  --safe-t:env(safe-area-inset-top,0px); --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px); --safe-r:env(safe-area-inset-right,0px);
+  --col:384px; --gap:10px;
+  --ease-out:cubic-bezier(.16,1,.3,1);
+  --composerH:56px;
+}
+*{box-sizing:border-box}
+[hidden]{display:none !important}
+html,body{height:100%}
+body{margin:0;background:var(--ground);color:var(--text);font:400 15px/1.45 var(--ui);overflow:hidden;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;font-kerning:normal}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer;-webkit-user-select:none;user-select:none}
+:focus-visible{outline:2px solid #fff;outline-offset:2px}
+::selection{background:#fff;color:#000}
+.num{font-variant-numeric:tabular-nums}
+.skip{position:fixed;left:12px;top:-60px;z-index:50;background:#fff;color:#000;padding:10px 14px;border-radius:999px;text-decoration:none;font-weight:600}
+.skip:focus{top:12px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* Press feedback everywhere (Emil Kowalski: respond on pointer-down) */
+.press{transition:transform .1s ease-out, background-color .15s ease}
+.press:active{transform:scale(.97)}
+
+/* ---------- Frame: left column ---------- */
+.side{position:fixed;top:0;bottom:0;left:0;width:calc(var(--col) + var(--safe-l));padding:calc(14px + var(--safe-t)) 14px calc(14px + var(--safe-b)) calc(14px + var(--safe-l));display:flex;flex-direction:column;gap:12px}
+.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:4px 6px 0}
+.mark{display:block;font:500 21px/1.1 var(--display);letter-spacing:-.01em;margin:0}
+.scope{display:block;font-size:13px;color:var(--muted);margin-top:4px}
+.seg{display:inline-flex;flex:none;background:var(--raised);border-radius:999px;padding:3px}
+.seg button{height:30px;padding:0 13px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:14px;font-weight:500}
+.seg button[aria-selected="true"]{background:var(--raised-2);color:var(--text)}
+.seg button:hover{color:var(--text)}
+
+.panel{flex:1;min-height:0;display:flex;flex-direction:column;position:relative}
+.panel-head{display:none}
+.grab{display:none}
+.thread{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:18px;padding:8px 6px 4px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#333 transparent}
+.spacer{flex:1 1 auto}
+.lately h4{font-size:13px;font-weight:600;color:var(--muted);margin:6px 4px 4px}
+
+/* empty state */
+.intro h1{font:400 30px/1.08 var(--display);letter-spacing:-.02em;margin:0 0 10px;max-width:15ch;text-wrap:balance}
+.intro p{margin:0 0 18px;color:var(--muted);max-width:34ch}
+.tries{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+.try{display:flex;align-items:center;gap:12px;width:100%;min-height:44px;padding:10px 12px;border:0;border-radius:14px;background:transparent;text-align:left;color:var(--text);font-size:15px}
+.try:hover{background:var(--raised)}
+.try svg{flex:none;width:16px;height:16px;color:var(--faint)}
+
+/* messages */
+.msg{max-width:100%;animation:rise .38s var(--ease-out) both}
+@keyframes rise{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.msg p{margin:0}
+.me{align-self:flex-end;max-width:84%;overflow-wrap:anywhere;background:var(--raised-2);color:var(--text);padding:9px 14px;border-radius:20px 20px 6px 20px}
+.me .saved-as{display:block;font-size:12px;color:var(--muted);margin-bottom:2px}
+.ai{align-self:stretch;font-size:15.5px;line-height:1.5}
+.understood{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:10px;font-size:13px;color:var(--muted)}
+.clue{display:inline-flex;align-items:center;height:26px;padding:0 9px;border-radius:7px;background:var(--raised);color:var(--text);animation:rise .32s var(--ease-out) both}
+.status{color:var(--muted);display:flex;align-items:center;gap:10px}
+.status i{width:6px;height:6px;border-radius:50%;background:#dbe5ff;animation:breathe 1.2s ease-in-out infinite}
+@keyframes breathe{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1)}}
+.result{display:grid;grid-template-columns:72px 1fr auto;grid-template-rows:auto auto;column-gap:14px;align-items:center;width:100%;margin-top:14px;padding:10px;border:0;border-radius:18px;background:var(--surface);text-align:left}
+.result:hover{background:var(--raised)}
+.result canvas{grid-row:1 / span 2;width:72px;height:72px;border-radius:12px;background:#000;display:block}
+.r-title{grid-column:2 / 4;font-size:15px;font-weight:600;line-height:1.3;align-self:end}
+.r-sub{grid-column:2;grid-row:2;align-self:start;margin-top:10px;min-width:0}
+.r-meta{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.r-go{grid-column:3;grid-row:2;align-self:start;margin-top:6px;flex:none;height:32px;padding:0 14px;border-radius:999px;background:#fff;color:#000;font-size:13.5px;font-weight:600;display:inline-flex;align-items:center}
+.also{margin-top:14px}
+.also h4,.card h3{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 6px}
+.row{display:flex;align-items:center;gap:12px;width:100%;min-height:40px;padding:8px 10px;border:0;border-radius:12px;background:transparent;text-align:left;color:var(--text);font-size:14.5px}
+.row:hover{background:var(--raised)}
+.row .t{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.row .m{flex:none;font-size:13px;color:var(--faint)}
+.dot{flex:none;width:8px;height:8px;border-radius:50%;background:var(--c);box-shadow:0 0 0 3px color-mix(in srgb, var(--c) 18%, transparent)}
+.fb{display:flex;gap:6px;margin-top:12px;align-items:center}
+.fb button{height:30px;padding:0 12px;border:0;border-radius:999px;background:var(--raised);color:var(--muted);font-size:13px}
+.fb button:hover{color:var(--text)}
+.fb button[aria-pressed="true"]{background:#fff;color:#000}
+.fb span{font-size:13px;color:var(--faint);margin-left:4px}
+
+/* recent */
+.recent{flex:1;min-height:0;display:flex;flex-direction:column}
+.filters{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;padding:4px 6px 10px;flex:none}
+.filters::-webkit-scrollbar{display:none}
+.filters button{flex:none;height:32px;padding:0 13px;border:0;border-radius:999px;background:var(--raised);color:var(--muted);font-size:13.5px}
+.filters button[aria-pressed="true"]{background:#fff;color:#000}
+.rlist{flex:1;min-height:0;overflow-y:auto;padding:0 6px 8px;scrollbar-width:thin;scrollbar-color:#333 transparent}
+.rday{position:sticky;top:0;z-index:1;background:var(--ground);font-size:13px;font-weight:600;color:var(--muted);padding:12px 4px 6px}
+.rrow{display:grid;grid-template-columns:auto 1fr auto;column-gap:12px;align-items:center;width:100%;padding:9px 10px;border:0;border-radius:12px;background:transparent;text-align:left;color:var(--text)}
+.rrow:hover{background:var(--raised)}
+.rrow .t{font-size:14.5px;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.rrow .s{grid-column:2;font-size:13px;color:var(--faint);margin-top:2px}
+.rrow .m{grid-row:1;grid-column:3;font-size:13px;color:var(--faint)}
+.rrow .dot{grid-row:1 / span 2}
+
+/* composer */
+.composer{flex:none;display:flex;align-items:center;gap:6px;min-height:var(--composerH);padding:6px 6px 6px 6px;border-radius:28px;background:var(--raised)}
+.composer:focus-within{background:#232326}
+.composer .seg{background:#141416}
+#q{flex:1;min-width:0;height:44px;border:0;background:transparent;color:var(--text);font-size:16px;padding:0 6px}
+#q::placeholder{color:var(--faint)}
+#q:focus-visible{outline:none}
+.ibtn{flex:none;width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:var(--muted)}
+.ibtn:hover{background:var(--raised-2);color:var(--text)}
+.ibtn svg{width:20px;height:20px}
+.send{flex:none;width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:50%;background:#fff;color:#000}
+.send svg{width:18px;height:18px}
+.send:disabled{background:var(--raised-2);color:#6e6e72;cursor:default}
+.sugg{display:none}
+
+/* ---------- The sky window ---------- */
+.skywin{position:fixed;top:calc(10px + var(--safe-t));bottom:calc(10px + var(--safe-b));right:calc(10px + var(--safe-r));left:calc(var(--col) + var(--safe-l) + 2px);border-radius:26px;background:var(--sky);overflow:hidden;isolation:isolate}
+#sky{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
+.zoom{position:absolute;top:14px;right:14px;display:flex;flex-direction:column;gap:2px;padding:4px;border-radius:999px;background:var(--surface);transition:right .45s var(--ease-out)}
+body.card-open .zoom{right:calc(min(392px, 100% - 24px) + 26px)}
+body.card-open .timeline{padding-right:calc(min(392px, 100% - 24px) + 30px)}
+.zoom button{width:38px;height:38px;display:grid;place-items:center;border:0;border-radius:50%;background:transparent;color:var(--muted)}
+.zoom button:hover{background:var(--raised-2);color:var(--text)}
+.zoom svg{width:18px;height:18px}
+.lit{position:absolute;top:14px;left:14px;display:flex;align-items:center;gap:4px;height:38px;padding:0 4px 0 14px;border-radius:999px;background:var(--surface);font-size:14px;color:var(--text)}
+.lit button{height:30px;padding:0 12px;border:0;border-radius:999px;background:var(--raised);color:var(--muted);font-size:13px}
+.lit button:hover{color:var(--text)}
+.toast{position:absolute;left:50%;bottom:96px;transform:translate(-50%,8px);display:flex;align-items:center;gap:6px;height:40px;padding:0 6px 0 16px;border-radius:999px;background:var(--surface);font-size:14px;opacity:0;pointer-events:none;transition:opacity .2s ease, transform .3s var(--ease-out);white-space:nowrap;z-index:6}
+.toast.on{opacity:1;transform:translate(-50%,0);pointer-events:auto}
+.toast button{height:30px;padding:0 12px;border:0;border-radius:999px;background:var(--raised-2);color:var(--text);font-size:13px;font-weight:600}
+.toast.nobtn{padding-right:16px}
+
+/* timeline: the real saves per week, which is also the colour key */
+.timeline{position:absolute;left:0;right:0;bottom:0;padding:26px 18px 14px;display:flex;align-items:flex-end;gap:12px;background:linear-gradient(to top, rgba(0,0,0,.85), rgba(0,0,0,0));}
+.timeline .play{flex:none;width:40px;height:40px;display:grid;place-items:center;border:0;border-radius:50%;background:var(--surface);color:var(--text)}
+.timeline .play:hover{background:var(--raised-2)}
+.timeline .play svg{width:16px;height:16px}
+.tl-wrap{position:relative;flex:1;min-width:0;height:52px;cursor:ew-resize;touch-action:none}
+#tl{position:absolute;inset:0;width:100%;height:100%;display:block}
+.tl-label{position:absolute;bottom:100%;margin-bottom:4px;transform:translateX(-50%);font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;pointer-events:none}
+.tl-label span{font-weight:400;color:var(--muted)}
+
+/* ---------- The card ---------- */
+.card{position:absolute;top:12px;right:12px;bottom:12px;width:min(392px, calc(100% - 24px));display:flex;flex-direction:column;border-radius:22px;background:var(--surface);box-shadow:0 30px 80px rgba(0,0,0,.55);z-index:5;overflow:hidden}
+.card[hidden]{display:none}
+.card-scroll{flex:1;min-height:0;overflow-y:auto;padding:22px 22px 18px;overscroll-behavior:contain;scrollbar-width:thin;scrollbar-color:#333 transparent}
+.close{position:absolute;top:12px;right:12px;width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:50%;background:var(--raised);color:var(--muted);z-index:2}
+.close:hover{background:var(--raised-2);color:var(--text)}
+.close svg{width:16px;height:16px}
+.card h2{font:400 27px/1.12 var(--display);letter-spacing:-.015em;margin:0 44px 8px 0;text-wrap:balance}
+.card .sub{font-size:14px;color:var(--muted);margin:0}
+.card .why{margin:14px 0 0;padding:10px 12px;border-radius:12px;background:var(--raised);font-size:14px;color:var(--text)}
+.card section{margin-top:22px}
+.card p{margin:0}
+.bubble-wrap{display:flex;justify-content:flex-end}
+.bubble{max-width:92%;background:var(--raised-2);border-radius:20px 20px 6px 20px;padding:10px 14px 8px;font-size:15px;line-height:1.45;word-break:break-word;white-space:pre-wrap}
+.bubble .time{display:block;text-align:right;font-size:12px;color:var(--muted);margin-top:4px}
+.found{background:var(--raised);border-radius:14px;padding:12px 14px;font-size:14.5px;line-height:1.5}
+.found .foot{display:flex;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--muted)}
+.pill{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--raised-2);color:var(--text);font-size:12px;font-weight:600}
+.guess{font-size:14.5px;color:var(--muted);line-height:1.5}
+.now-line{font:400 22px/1.2 var(--display);letter-spacing:-.01em}
+.hist{display:flex;align-items:baseline;gap:10px;width:100%;padding:8px 10px;margin-top:4px;border:0;border-radius:12px;background:transparent;text-align:left;color:var(--muted);font-size:14.5px}
+.hist:hover{background:var(--raised)}
+.hist s{color:var(--text);text-decoration-thickness:1px}
+.hist .m{margin-left:auto;font-size:13px;color:var(--faint)}
+.kv{display:grid;grid-template-columns:104px 1fr;gap:8px 12px;margin-top:22px;font-size:14px}
+.kv dt{color:var(--faint)}
+.kv dd{margin:0;min-width:0}
+.kv .rel{display:block;color:var(--faint);font-size:13px}
+.linkbtn{padding:0;border:0;background:none;color:var(--text);text-align:left;text-decoration:underline;text-decoration-color:#555;text-underline-offset:3px;font-size:14px}
+.linkbtn:hover{text-decoration-color:#fff}
+.actions{display:flex;gap:4px;margin-top:22px;padding-top:4px}
+.actions button{height:34px;padding:0 12px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-size:14px}
+.actions button:hover{background:var(--raised);color:var(--text)}
+.reveal{animation:rise .42s var(--ease-out) both}
+
+/* ---------- Phone ---------- */
+@media (max-width: 899px){
+  body{font-size:15px}
+  .skywin{inset:0;border-radius:0}
+  .side{position:static;width:auto;padding:0}
+  .top{position:fixed;z-index:4;top:0;left:0;right:0;padding:calc(12px + var(--safe-t)) calc(16px + var(--safe-r)) 28px calc(16px + var(--safe-l));background:linear-gradient(to bottom, rgba(0,0,0,.78), rgba(0,0,0,0));pointer-events:none}
+  .top > *{pointer-events:auto}
+  .mark{font-size:20px}
+  .scope{display:block;max-width:calc(100vw - 150px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .tabs{display:none}
+  .recent-btn{display:inline-flex !important}
+  .composer{position:fixed;z-index:8;left:calc(10px + var(--safe-l));right:calc(10px + var(--safe-r));bottom:calc(10px + var(--safe-b))}
+  .sugg{display:flex;position:fixed;z-index:3;left:0;right:0;bottom:calc(var(--composerH) + 20px + var(--safe-b));gap:6px;overflow-x:auto;scrollbar-width:none;padding:0 12px}
+  .sugg::-webkit-scrollbar{display:none}
+  .sugg button{flex:none;height:36px;padding:0 14px;border:0;border-radius:999px;background:var(--surface);color:var(--text);font-size:14px;white-space:nowrap}
+  .sugg[hidden]{display:none}
+  .timeline{bottom:calc(var(--composerH) + 14px + var(--safe-b));padding:22px 12px 6px;background:none}
+  .has-sugg .timeline{bottom:calc(var(--composerH) + 62px + var(--safe-b))}
+  .tl-wrap{height:40px}
+  .zoom{display:none}
+  .lit{top:calc(76px + var(--safe-t));left:12px}
+  .toast{bottom:auto;top:calc(76px + var(--safe-t))}
+  /* sheets */
+  .panel{position:fixed;z-index:7;left:0;right:0;bottom:0;height:calc(100% - 64px - var(--safe-t));background:var(--surface);border-radius:24px 24px 0 0;padding:0 10px calc(var(--composerH) + 22px + var(--safe-b));box-shadow:0 -20px 60px rgba(0,0,0,.5);transform:translateY(110%);will-change:transform;visibility:hidden}
+  .panel.shown{visibility:visible}
+  .panel-head{display:flex;align-items:center;justify-content:space-between;padding:6px 6px 4px;flex:none;touch-action:none}
+  .panel-head h2{font:500 18px/1.2 var(--display);margin:0}
+  .grab{display:block;width:40px;height:5px;border-radius:3px;background:#3a3a3d;margin:8px auto 2px;flex:none}
+  .grab-zone{touch-action:none;cursor:grab;flex:none}
+  .spacer,.lately{display:none}
+  .thread,.rlist{padding-bottom:calc(var(--hide, 0px) + 12px)}
+  .intro{display:none}
+  .rday{background:var(--surface)}
+  .card{top:auto;left:0;right:0;bottom:0;width:auto;height:calc(100% - 64px - var(--safe-t));border-radius:24px 24px 0 0;box-shadow:0 -20px 60px rgba(0,0,0,.55);transform:translateY(110%);will-change:transform;padding-bottom:var(--safe-b)}
+  .card .grab{display:block}
+  .card-scroll{padding:6px 20px 24px}
+  .close{top:14px;right:14px}
+  .card h2{font-size:25px;margin-top:6px}
+  body.card-open .composer, body.card-open .timeline, body.card-open .sugg, body.card-open .top{opacity:0;pointer-events:none}
+  body.card-open .timeline{padding-right:12px}
+  .composer,.timeline,.sugg,.top{transition:opacity .2s ease}
+}
+@media (max-width: 430px){
+  .composer .seg button{padding:0 11px}
+}
+@media (min-width: 900px){
+  .recent-btn{display:none !important}
+}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms !important;animation-iteration-count:1 !important}
+  .press:active{transform:none}
+  .status i{animation:none;opacity:1}
+}
+@media (prefers-reduced-transparency: reduce){
+  .timeline{background:#000}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#rlist" id="skipLink">Skip to the list of memories</a>
+
+<div class="side" id="side">
+  <header class="top">
+    <div>
+      <p class="mark">Moira</p>
+      <span class="scope num" id="scope">Sample memory</span>
+    </div>
+    <div class="seg tabs" role="tablist" aria-label="View">
+      <button class="press" role="tab" id="tabAsk" aria-selected="true" aria-controls="thread">Ask</button>
+      <button class="press" role="tab" id="tabRecent" aria-selected="false" aria-controls="recent">Recent</button>
+    </div>
+    <button class="press recent-btn" id="recentBtn" style="display:none;height:36px;padding:0 14px;border:0;border-radius:999px;background:var(--surface);color:var(--text);font-size:14px;font-weight:500;align-items:center">Recent</button>
+  </header>
+
+  <section class="panel" id="panel" aria-label="Conversation">
+    <div class="grab-zone" id="panelGrab">
+      <div class="grab" aria-hidden="true"></div>
+      <div class="panel-head">
+        <h2 id="panelTitle">Your sky</h2>
+        <button class="close press" id="panelClose" aria-label="Close" style="position:static"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+      </div>
+    </div>
+    <div class="thread" id="thread" aria-live="polite">
+      <div class="lately" id="lately"><h4>Saved lately</h4><div id="latelyList"></div></div>
+      <div class="spacer"></div>
+      <div class="intro" id="intro">
+        <h1>Ask the way you remember it.</h1>
+        <p>Vague is fine. Every answer comes with the star it came from.</p>
+        <ul class="tries" id="tries"></ul>
+      </div>
+    </div>
+    <div class="recent" id="recent" hidden>
+      <div class="filters" id="filters" role="toolbar" aria-label="Show only"></div>
+      <div class="rlist" id="rlist" tabindex="-1"></div>
+    </div>
+  </section>
+
+  <div class="sugg" id="sugg" aria-label="Try asking"></div>
+
+  <form class="composer" id="ask" autocomplete="off">
+    <div class="seg" role="tablist" aria-label="What the box does">
+      <button type="button" class="press" role="tab" id="mAsk" aria-selected="true">Ask</button>
+      <button type="button" class="press" role="tab" id="mSave" aria-selected="false">Save</button>
+    </div>
+    <input id="q" name="q" enterkeyhint="send" placeholder="Ask anything you saved" aria-label="Ask your sky">
+    <button type="button" class="ibtn press" id="attach" aria-label="Add a voice note or a screenshot" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button class="send press" id="go" type="submit" aria-label="Send" disabled><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+  </form>
+</div>
+
+<main class="skywin" id="skywin">
+  <canvas id="sky" role="img" aria-label="Your memory as a night sky. Each star is something you saved, coloured by its age. Stars are grouped into named constellations."></canvas>
+
+  <div class="lit" id="lit" hidden><span id="litText"></span><button class="press" id="clearLit">Clear</button></div>
+
+  <div class="zoom" role="group" aria-label="Zoom">
+    <button class="press" id="zin" aria-label="Zoom in"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button class="press" id="zout" aria-label="Zoom out"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+    <button class="press" id="zfit" aria-label="Show the whole sky"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button>
+  </div>
+
+  <div class="timeline" id="timeline">
+    <button class="play press" id="play" aria-label="Replay how your sky grew"><svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5.5v13l11-6.5z" fill="currentColor"/></svg></button>
+    <div class="tl-wrap" id="tlWrap" role="slider" tabindex="0" aria-label="Show the sky as it was on a date" aria-valuemin="0" aria-valuemax="1000" aria-valuenow="1000" aria-valuetext="Today">
+      <canvas id="tl" aria-hidden="true"></canvas>
+      <div class="tl-label num" id="tlLabel">Today</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"><span id="toastText"></span><button class="press" id="toastBtn" hidden>Undo</button></div>
+
+  <aside class="card" id="card" hidden aria-labelledby="cTitle">
+    <div class="grab-zone" id="cardGrab"><div class="grab" aria-hidden="true"></div></div>
+    <button class="close press" id="cClose" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    <div class="card-scroll" id="cardBody"></div>
+  </aside>
+</main>
+
+<script>
+(() => {
+'use strict';
+/* ================= basics ================= */
+const NOW = new Date(2026, 9, 26, 9, 35).getTime();
+const DAY = 864e5, MIN = 6e4;
+const RM = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
+const lerp = (a, b, t) => a + (b - a) * t;
+const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const easeIO = t => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const easeOut = t => 1 - Math.pow(1 - t, 3);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+let seed = 20261026;
+const rnd = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646; };
+const haptic = kind => { try { const h = window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.HapticFeedback; if (!h) return; if (kind === 'select') h.selectionChanged(); else h.impactOccurred('light'); } catch (e) {} };
+const UI = 'system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif';
+const DISPLAY = 'Jost,Futura,"Century Gothic",system-ui,sans-serif';
+
+/* ================= colour: a star's colour is its age ================= */
+// Stops follow the blackbody sequence of real star colours (blue-white → white → yellow → orange),
+// tuned for contrast on black. Interpolated on log(1 + days).
+const AGE_STOPS = [[0, [176, 200, 255]], [10, [206, 220, 255]], [45, [236, 240, 255]], [150, [255, 246, 234]], [420, [255, 228, 194]], [900, [255, 204, 150]]];
+const AGE_MAX = Math.log1p(900), BINS = 24;
+function ageRGB(days) {
+  const x = Math.log1p(clamp(days, 0, 900));
+  for (let i = 1; i < AGE_STOPS.length; i++) {
+    const a = AGE_STOPS[i - 1], b = AGE_STOPS[i], xa = Math.log1p(a[0]), xb = Math.log1p(b[0]);
+    if (x <= xb) { const t = (x - xa) / (xb - xa); return a[1].map((v, k) => Math.round(lerp(v, b[1][k], t))); }
+  }
+  return AGE_STOPS[AGE_STOPS.length - 1][1];
+}
+const rgbStr = (c, a) => 'rgba(' + c[0] + ',' + c[1] + ',' + c[2] + ',' + (a == null ? 1 : a) + ')';
+const binOf = days => clamp(Math.round(Math.log1p(clamp(days, 0, 900)) / AGE_MAX * (BINS - 1)), 0, BINS - 1);
+const binDays = b => Math.expm1(b / (BINS - 1) * AGE_MAX);
+const ageCss = t => rgbStr(ageRGB((NOW - t) / DAY));
+
+/* ================= vocabulary ================= */
+const KIND = {link:'Link', idea:'Idea', fact:'Fact', person:'Person', todo:'To-do', note:'Note'};
+const SRC_LABEL = {instagram:'Instagram', youtube:'YouTube', github:'GitHub', web:'the web', typed:'Telegram', voice:'a voice note', screenshot:'a screenshot'};
+const SRC_SHORT = {instagram:'Instagram', youtube:'YouTube', github:'GitHub', web:'Web', typed:'Typed', voice:'Voice', screenshot:'Screenshot'};
+const FOUND = {
+  instagram:{method:'web search', text:'A web search found the creator’s caption when you saved it. The topic matches the title.', pill:'Possible match'},
+  youtube:{method:'YouTube', text:'Title and channel from YouTube’s public embed info, kept from the day you saved it.'},
+  github:{method:'GitHub', text:'Description and README summary from GitHub, kept from the day you saved it.'},
+  web:{method:'the page', text:'Title and summary read from the page itself, kept in case it disappears.'},
+  screenshot:{method:'the screenshot', text:'Every visible word was read from the screenshot. The image itself was not kept.'},
+  voice:{method:'your voice note', text:'Transcribed from your voice note. The audio itself was not kept.'},
+};
+const HUBS = [
+  {id:'ai',      name:'AI tools',           x:-120, y:-270, s:175},
+  {id:'pc',      name:'PC setup',           x: 370, y:-170, s:120},
+  {id:'design',  name:'Design and portfolio', x:-450, y: -40, s:140},
+  {id:'people',  name:'People',             x: 120, y: 240, s:150},
+  {id:'music',   name:'Music',              x: 480, y: 270, s:115},
+  {id:'reading', name:'Reading and watching', x:-340, y: 310, s:130},
+  {id:'ideas',   name:'Ideas',              x: -50, y:  30, s:120},
+  {id:'plans',   name:'Plans and to-dos',     x: 300, y:  40, s:105},
+  {id:'food',    name:'Food',               x:-660, y: 140, s: 95},
+  {id:'fav',     name:'Favorite things',    x: 250, y: 480, s: 72},
+  {id:'places',  name:'Places',             x:-640, y:-310, s: 95},
+];
+const HUB = {}; HUBS.forEach(h => { HUB[h.id] = h; h.stars = []; });
+
+/* ================= sample memory (synthetic) ================= */
+const FPS_ANS = 'On 12 Oct you saved a max-FPS video and three fixes from it: turn on XMP in BIOS, turn Game Mode on, and turn fullscreen optimizations off. On 18 Oct you added NVIDIA low latency mode on Ultra.';
+const FRUIT_ANS = 'Banana, plus oranges since 9 Jun 2026. Until 2 Mar 2026 it was apple.';
+const H = [
+  {id:'ig-ai', hub:'ai', type:'link', src:'instagram', d:'2026-10-12T21:40', imp:.95,
+   title:'Reel: 5 AI tools for video editing', raw:'https://www.instagram.com/reel/DQx7Lm2kP4a/',
+   found:{method:'web search', text:'A web search found this reel credited to @editlab.demo. Its caption lists five AI video-editing tools.', pill:'Possible match', source:'instagram.com'},
+   guess:'Sent with no note, 28 minutes after your PC fixes. Probably a lead for editing your own videos.',
+   ans:'Yes. On Mon 12 Oct at 9:40 pm you sent an Instagram reel with no note. A web search at the time found it’s by @editlab.demo, about five AI tools for video editing. You saved it right after your PC fixes.'},
+  {id:'yt-agents', hub:'ai', type:'link', src:'youtube', d:'2026-09-28T22:10', imp:.7, title:'Video: agents that use tools, explained', raw:'https://youtu.be/k3Lq9TzvA0w  watch the part about tool calling'},
+  {id:'muse', hub:'ai', type:'idea', src:'typed', d:'2026-10-21T23:02', imp:.75, title:'Try Muse Spark for the hackathon', raw:'muse spark looks good for the hackathon, 1M context, check the credits'},
+  {id:'yt-fps', hub:'pc', type:'link', src:'youtube', d:'2026-10-12T21:12', imp:.9, title:'Video: max FPS setup guide', raw:'https://youtu.be/Qm8vR2xLk4E  I did these wrong: XMP off in BIOS, Game Mode off, fullscreen optimizations on', ans:FPS_ANS},
+  {id:'fps-xmp', hub:'pc', type:'todo', src:'typed', d:'2026-10-12T21:14', imp:.72, title:'Fix: turn on XMP in BIOS', raw:'turn on xmp in bios, ram is running slow', ans:FPS_ANS},
+  {id:'fps-gm', hub:'pc', type:'todo', src:'typed', d:'2026-10-12T21:15', imp:.62, title:'Fix: Game Mode on, fullscreen optimizations off', raw:'game mode ON, fullscreen optimizations OFF', ans:FPS_ANS},
+  {id:'fps-nv', hub:'pc', type:'todo', src:'voice', d:'2026-10-18T20:30', imp:.55, title:'Fix: NVIDIA low latency mode on Ultra', raw:'set nvidia low latency to ultra, the video said it helps in shooters', ans:FPS_ANS},
+  {id:'gh-skill', hub:'design', type:'link', src:'github', d:'2026-10-20T16:05', imp:.9, title:'GitHub skill: portfolio design system', raw:'github.com/studio-demo/skills/portfolio-design   colors #0F172A #38BDF8 #F472B6',
+   found:{method:'GitHub', text:'README: a skill that builds portfolio sites from a short brief. The palette is kept exactly as you sent it: #0F172A, #38BDF8, #F472B6.', source:'github.com'},
+   ans:'The portfolio design skill you saved from GitHub on 20 Oct. Its palette, kept exactly as you sent it: #0F172A, #38BDF8, #F472B6.'},
+  {id:'friends', hub:'people', type:'person', src:'typed', d:'2026-02-10T20:20', imp:.85, title:'Best friends: Alex, Guy, Josh', raw:'my best friends are alex, guy and josh, tight since school', list:['Alex', 'Guy', 'Josh'], ans:'Alex, Guy and Josh. You told me on 10 Feb that you’ve been close since school.'},
+  {id:'josh-mail', hub:'people', type:'person', src:'typed', d:'2026-09-18T19:30', imp:.86, title:'Josh’s email', raw:'josh’s new email josh.r@example.com, he’s freelancing as a designer now',
+   found:{method:'exact copy', text:'josh.r@example.com was copied character for character by code, never retyped by AI.'},
+   now:'Josh: josh.r@example.com, freelance designer.',
+   ans:'josh.r@example.com. You saved it on 18 Sep, with a note that he’s freelancing as a designer now.'},
+  {id:'maya', hub:'people', type:'person', src:'screenshot', d:'2026-08-02T14:48', imp:.6, title:'Maya Chen, studio recruiter', raw:'[screenshot of an email signature]', found:{method:'the screenshot', text:'Maya Chen, Talent lead, maya.chen@example.com. The screenshot itself was not kept.'}},
+  {id:'alex-bday', hub:'people', type:'fact', src:'typed', d:'2026-01-20T09:00', imp:.6, title:'Alex’s birthday: 14 May', raw:'alex bday may 14'},
+  {id:'apple', hub:'fav', type:'fact', src:'typed', d:'2026-01-04T10:02', imp:.55, title:'Favorite fruit: apple', raw:'my favorite fruit is apple', replacedBy:'banana', ans:'That was apple, until 2 Mar 2026. Now it’s banana, plus oranges.'},
+  {id:'banana', hub:'fav', type:'fact', src:'typed', d:'2026-03-02T18:40', imp:.9, title:'Favorite fruit: banana', raw:'my favorite fruit is now banana', earlier:['apple'], now:'Banana and orange', ans:FRUIT_ANS},
+  {id:'orange', hub:'fav', type:'fact', src:'voice', d:'2026-06-09T13:15', imp:.7, title:'Also likes oranges', raw:'oh and I like oranges too', now:'Banana and orange', guess:'“Too” means add, not replace, so banana stays.', ans:FRUIT_ANS},
+  {id:'movie', hub:'fav', type:'fact', src:'typed', d:'2025-11-11T23:40', imp:.5, title:'Favorite movie right now: Interstellar', raw:'fav movie rn interstellar'},
+  {id:'coffee', hub:'fav', type:'fact', src:'voice', d:'2026-04-03T08:12', imp:.45, title:'Coffee order: oat flat white', raw:'my coffee order is an oat flat white'},
+  {id:'today', hub:'plans', type:'todo', src:'typed', d:'2026-10-26T08:10', imp:.8, title:'Today: finish the blueprint, gym at 6', raw:'today: finish hackathon blueprint, gym at 6'},
+  {id:'submit', hub:'plans', type:'todo', src:'typed', d:'2026-10-26T08:30', imp:.86, title:'Submit hackathon project by 4 Nov', raw:'deadline nov 4, 9pm ET', ans:'4 Nov at 9 pm ET. You noted it this morning, right after today’s plan.'},
+  {id:'idea-sky', hub:'ideas', type:'idea', src:'typed', d:'2026-10-25T23:55', imp:.95, title:'Idea: a memory you text like a friend', raw:'what if notes app but you just dump stuff and it finds it by vibe'},
+  {id:'cafe-song', hub:'music', type:'note', src:'voice', d:'2026-10-22T17:20', imp:.6, title:'Song from the cafe: lo-fi with a sax', raw:'song in the cafe, lofi with saxophone, ask the barista next time'},
+];
+const P = {
+  ai:['Reel: AI that turns sketches into UI','Article: running small LLMs on a laptop','Tool: meeting notes summarizer','Video: prompt engineering in 10 minutes','Article: how RAG actually works','Tool: AI background remover','Reel: voice cloning demo, be careful','Compare three AI code reviewers','GitHub: open-source speech-to-text','Video: fine-tuning on a single GPU','Tool: AI slide deck maker','Reel: AI photo restoration','Article: evals matter more than prompts','Tool: local image generator','Video: agents with memory explained','GitHub: tiny vector search in SQLite','Reel: AI music stem splitter','Article: tip-of-the-tongue search research','Tool: transcript search for podcasts','Idea for an AI study buddy','Video: computer-use agents demo'],
+  pc:['Monitor runs at 165 Hz, check the cable','Fix: update chipset drivers','Video: undervolting guide','Case fan curve is too aggressive','Fix: disable startup apps','Screenshot: GPU at 82 °C while gaming','Order thermal paste','Video: cable management in 5 minutes','Fix: power plan to high performance','SSD at 91%, clean it up','GitHub: frame-time monitor tool','Try DLSS quality mode','Fix: clean reinstall of the GPU driver','Mouse polling rate 1000 Hz','Video: best Windows settings for gaming','Screenshot: benchmark score before fixes'],
+  design:['Palette: #1E1B4B #A78BFA #F9FAFB','Site: portfolio with great scroll animation','Font pair for the portfolio','Reel: micro-interactions that feel premium','Put case studies above the fold','GitHub: open-source icon set','Article: designing dark mode properly','Screenshot: nice pricing page layout','Logo idea: a single star','Site: landing page with a 3D hero','Palette: forest green and brass','Video: Figma auto layout deep dive','Portfolio needs a contact section','Reel: kinetic typography examples','Article: why most portfolios look the same','Screenshot: beautiful empty state','Site: case study storytelling example'],
+  people:['Sam’s phone number from the meetup','Priya works at a robotics startup','Dad’s shirt size: L','Ravi recommended a dentist','Mentor call notes with Lena','Coach Ben’s email','Neighbor Tom has a ladder','Gift idea for Ana: film camera','Met Kai at the hackathon kickoff','Mom’s favorite flowers: lilies','Guy’s new job at a game studio','Josh’s portfolio link','Landlord’s contact for repairs','Lena suggested a book on habits','Zoe from the design meetup, illustrator'],
+  music:['Song: Tame Impala, The Less I Know the Better','Song: Bon Iver, Holocene','Playlist: focus music for coding','Song: Daft Punk, Instant Crush','Album to try: In Rainbows','Song: Khruangbin, Maria También','Concert in December, check tickets','Song from a reel: piano cover','Song: Fleetwood Mac, Dreams','Podcast: interview with a film composer','Song: Arctic Monkeys, 505','Learn the chords for Wonderwall','Song: Nujabes, Feather','Song: The Weeknd, Blinding Lights'],
+  reading:['Book: Atomic Habits','Book: The Design of Everyday Things','Series: Severance season 2','Article: the case against folders','Movie: Arrival','Book: Deep Work','Documentary: the making of a game','Article: how memory works','Video essay: why cities feel alive','Book: Project Hail Mary','Series: The Bear','Article: the Data Mountain study','Movie: Spirited Away','Book: Thinking, Fast and Slow','Podcast: building a second brain','Article: why graphs become hairballs'],
+  ideas:['Idea: app that texts you old memories','Idea: board game about time travel','Idea: YouTube channel on PC tuning','Idea: smart plant watering','Idea: map of cafes with good wifi','Idea: AI that rehearses interviews','Idea: shared grocery list for the flat','Idea: weekend hack, habit tracker','Idea: write about building in public','Idea: tiny game in one HTML file','Idea: print photos every month','Idea: my star map as a screensaver','Idea: teach a workshop on prompts','Idea: budget tracker by voice','Idea: auto-tag my screenshots folder','Idea: postcard project with friends'],
+  plans:['Gym at 6, leg day','Pay the internet bill before the 5th','Book a dentist appointment','Call mom on Sunday','Back up phone photos','Return the library book','Buy a birthday gift for Alex','Clean the desk and cables','Send the invoice to the client','Plan a weekend trip','Renew passport before March','Fix the bike brakes','Update CV with recent projects','Water the plants'],
+  food:['Reel: 10-minute garlic noodles','Recipe: overnight oats','Reel: crispy chickpeas','Cafe with the best cold brew so far','Recipe: one-pan lemon chicken','Buy smoked paprika','Reel: homemade pizza dough','Recipe: mango lassi','Alex is allergic to peanuts','Reel: knife skills basics','Recipe: chili oil eggs'],
+  places:['Bookstore with a rooftop cafe','Trail with a sunrise view','Hotel to remember: quiet and cheap','Coworking space with day passes','Museum that’s free on Thursdays','Viewpoint for sunset photos','Park with a good running loop','Market for cheap electronics','Lake town for a weekend','Cinema with recliner seats'],
+};
+
+const stars = [], byId = {};
+const LINKSRC = new Set(['instagram', 'youtube', 'github', 'web']);
+function srcFor(title) {
+  if (/^Reel:/.test(title)) return 'instagram';
+  if (/^(Video|Video essay):/.test(title)) return 'youtube';
+  if (/^GitHub:/.test(title)) return 'github';
+  if (/^(Article|Site|Tool):/.test(title)) return 'web';
+  if (/^Screenshot:/.test(title)) return 'screenshot';
+  return rnd() < 0.22 ? 'voice' : 'typed';
+}
+function typeFor(hub, src, title) {
+  const L = LINKSRC.has(src);
+  switch (hub) {
+    case 'ai': return L ? 'link' : 'idea';
+    case 'pc': return /^Fix:/.test(title) ? 'todo' : (L ? 'link' : 'note');
+    case 'design': return L ? 'link' : (/^(Palette|Font)/.test(title) ? 'note' : 'idea');
+    case 'people': return 'person';
+    case 'reading': return L ? 'link' : 'note';
+    case 'ideas': return 'idea';
+    case 'plans': return 'todo';
+    case 'fav': return 'fact';
+    default: return L ? 'link' : 'note';
+  }
+}
+const code = n => { const A = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789'; let s = ''; for (let i = 0; i < n; i++) s += A[Math.floor(rnd() * A.length)]; return s; };
+const slug = s => s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 44);
+function rawFor(src, title) {
+  const body = title.replace(/^[A-Za-z ]+:\s*/, '');
+  switch (src) {
+    case 'instagram': return 'https://www.instagram.com/reel/' + code(11) + '/';
+    case 'youtube': return 'https://youtu.be/' + code(11);
+    case 'github': return 'github.com/' + slug(body);
+    case 'web': return 'https://' + ['blog.example.com', 'articles.example.org', 'notes.example.net'][Math.floor(rnd() * 3)] + '/' + slug(body);
+    case 'screenshot': return '[screenshot] ' + body;
+    default: return body.charAt(0).toLowerCase() + body.slice(1);
+  }
+}
+function indexStar(s) {
+  const f = s.found || FOUND[s.src];
+  s.tl = s.title.toLowerCase();
+  s.doc = (s.title + ' ' + s.raw + ' ' + (f ? f.text : '') + ' ' + HUB[s.hub].name + ' ' + KIND[s.type]).toLowerCase().replace(/[’']/g, "'");
+  s.words = new Set(s.doc.split(/[^a-z0-9@#]+/).filter(Boolean));
+  s.tw = new Set(s.tl.split(/[^a-z0-9@#]+/).filter(Boolean));
+}
+function addStar(o) {
+  const s = Object.assign({}, o);
+  s.t = typeof o.d === 'number' ? o.d : new Date(o.d).getTime();
+  s.imp = o.imp != null ? o.imp : 0.22 + rnd() * 0.5;
+  s.base = 1.45 + s.imp * 2.6;
+  s.ph = rnd() * 6.283; s.sp = 0.45 + rnd() * 1.0; s.gl = 8 + rnd() * 70;
+  s.bin = binOf((NOW - s.t) / DAY);
+  s._on = false;
+  indexStar(s);
+  stars.push(s); byId[s.id] = s; HUB[s.hub].stars.push(s);
+  return s;
+}
+H.forEach(addStar);
+let pid = 0;
+for (const hid in P) for (const title of P[hid]) {
+  const src = srcFor(title);
+  const age = Math.pow(rnd(), 1.25) * 630 + 1.6;
+  const dt = new Date(NOW - age * DAY); dt.setHours(7 + Math.floor(rnd() * 16), Math.floor(rnd() * 60));
+  addStar({id:'p' + (pid++), hub:hid, type:typeFor(hid, src, title), src, d:dt.getTime(), title, raw:rawFor(src, title)});
+}
+HUBS.forEach(h => {
+  h.stars.sort((a, b) => a.t - b.t);
+  const n = h.stars.length;
+  h.stars.forEach((s, i) => {
+    const u = (i + 0.6) / (n + 0.4);
+    const r = h.s * Math.sqrt(u) * (0.78 + 0.3 * rnd());
+    const a = i * 2.39996 + rnd() * 0.7;
+    s.x = h.x + Math.cos(a) * r; s.y = h.y + Math.sin(a) * r * 0.86;
+  });
+});
+byId.apple.x = byId.banana.x - 30; byId.apple.y = byId.banana.y + 16;
+byId.orange.x = byId.banana.x + 26; byId.orange.y = byId.banana.y - 18;
+stars.forEach(s => { s.dc = Math.hypot(s.x, s.y); });
+
+function mst(list) {
+  const n = list.length; if (n < 2) return [];
+  const inT = new Array(n).fill(false), d = new Array(n).fill(Infinity), p = new Array(n).fill(-1), E = [];
+  d[0] = 0;
+  for (let k = 0; k < n; k++) {
+    let u = -1;
+    for (let i = 0; i < n; i++) if (!inT[i] && (u < 0 || d[i] < d[u])) u = i;
+    inT[u] = true;
+    if (p[u] >= 0) E.push([list[p[u]], list[u], d[u]]);
+    for (let v = 0; v < n; v++) {
+      if (inT[v]) continue;
+      const dd = Math.hypot(list[u].x - list[v].x, list[u].y - list[v].y);
+      if (dd < d[v]) { d[v] = dd; p[v] = u; }
+    }
+  }
+  // Skip edges longer than 3x the median, so loose clusters never draw long lines.
+  const med = E.map(e => e[2]).sort((a, b) => a - b)[Math.floor(E.length / 2)] || 0;
+  return E.filter(e => e[2] <= med * 3);
+}
+HUBS.forEach(h => { h.edges = mst(h.stars); });
+let chron = [];
+const sortChron = () => { chron = stars.filter(s => !s.unborn && !s.removed).sort((a, b) => a.t - b.t); };
+sortChron();
+const tMin = Math.min.apply(null, stars.map(s => s.t)) - 3 * DAY;
+
+/* ================= dates ================= */
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WD = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const yr = d => d.getFullYear() !== 2026 ? ' ' + d.getFullYear() : '';
+const fmtDay = t => { const d = new Date(t); return d.getDate() + ' ' + MON[d.getMonth()] + ' ' + d.getFullYear(); };
+const fmtShort = t => { const d = new Date(t); return d.getDate() + ' ' + MON[d.getMonth()] + yr(d); };
+const fmtTime = t => { const d = new Date(t); let h = d.getHours(); const am = h < 12 ? 'am' : 'pm'; h = h % 12 || 12; return h + ':' + String(d.getMinutes()).padStart(2, '0') + ' ' + am; };
+const fmtFull = t => { const d = new Date(t); return WD[d.getDay()] + ' ' + d.getDate() + ' ' + MON[d.getMonth()] + yr(d) + ', ' + fmtTime(t); };
+function rel(t) {
+  const days = (NOW - t) / DAY;
+  if (days < 0.04) return 'just now';
+  if (days < 1) { const h = Math.max(1, Math.round(days * 24)); return h === 1 ? 'an hour ago' : h + ' hours ago'; }
+  if (days < 1.6) return 'yesterday';
+  if (days < 13) return Math.round(days) + ' days ago';
+  if (days < 60) { const w = Math.round(days / 7); return w === 1 ? 'a week ago' : w + ' weeks ago'; }
+  if (days < 365) { const m = Math.round(days / 30.4); return m === 1 ? 'a month ago' : m + ' months ago'; }
+  const y = Math.round(days / 365); return y === 1 ? 'a year ago' : y + ' years ago';
+}
+function gap(a, b) {
+  const m = Math.round((b - a) / MIN);
+  if (m < 60) return m + ' min earlier';
+  const h = Math.round(m / 60); if (h < 36) return h + (h === 1 ? ' hour' : ' hours') + ' earlier';
+  const d = Math.round(h / 24); return d + ' days earlier';
+}
+function dayLabel(t) {
+  const d = new Date(t), n = new Date(NOW);
+  const k = x => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const diff = Math.round((k(n) - k(d)) / DAY);
+  if (diff === 0) return 'Today';
+  if (diff === 1) return 'Yesterday';
+  return WD[d.getDay()] + ' ' + d.getDate() + ' ' + MON[d.getMonth()] + yr(d);
+}
+
+/* ================= sprites ================= */
+function glowSprite(c) {
+  const S = 128, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const g = cv.getContext('2d'), gr = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(.05, rgbStr(c, 1)); gr.addColorStop(.12, rgbStr(c, .6));
+  gr.addColorStop(.28, rgbStr(c, .16)); gr.addColorStop(.55, rgbStr(c, .045)); gr.addColorStop(1, rgbStr(c, 0));
+  g.fillStyle = gr; g.fillRect(0, 0, S, S); return cv;
+}
+function spikeSprite() {
+  const S = 128, cv = document.createElement('canvas'); cv.width = cv.height = S; const g = cv.getContext('2d');
+  const lg = g.createLinearGradient(0, 0, S, 0); lg.addColorStop(0, 'rgba(255,255,255,0)'); lg.addColorStop(.5, 'rgba(255,255,255,.85)'); lg.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = lg; g.fillRect(0, S / 2 - .5, S, 1);
+  const vg = g.createLinearGradient(0, 0, 0, S); vg.addColorStop(0, 'rgba(255,255,255,0)'); vg.addColorStop(.5, 'rgba(255,255,255,.85)'); vg.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = vg; g.fillRect(S / 2 - .5, 0, 1, S); return cv;
+}
+function softSprite(c, a0) {
+  const S = 256, cv = document.createElement('canvas'); cv.width = cv.height = S;
+  const g = cv.getContext('2d'), gr = g.createRadialGradient(128, 128, 0, 128, 128, 128);
+  gr.addColorStop(0, rgbStr(c, a0)); gr.addColorStop(.45, rgbStr(c, a0 * .35)); gr.addColorStop(1, rgbStr(c, 0));
+  g.fillStyle = gr; g.fillRect(0, 0, S, S); return cv;
+}
+const GLOW = []; for (let b = 0; b < BINS; b++) GLOW.push(glowSprite(ageRGB(binDays(b))));
+const WHITE = glowSprite([255, 255, 255]);
+const SPIKE = spikeSprite();
+// The Milky Way: a warm band of unresolved stars with darker dust lanes. Drawn, not decorated.
+const BAND_GLOW = softSprite([214, 204, 186], .5), LANE = softSprite([0, 0, 0], .9), HUB_GLOW = softSprite([235, 232, 226], .5);
+const bandY = x => lerp(780, -780, (x + 1300) / 2600);
+const bandBlobs = [], lanes = [], bandDust = [];
+for (let i = 0; i < 64; i++) { const u = rnd(), x = lerp(-1500, 1500, u), off = (rnd() - .5) * 240; bandBlobs.push({x:x + off * .514, y:bandY(x) + off * .857, r:140 + rnd() * 240, a:.03 + rnd() * .03}); }
+for (let i = 0; i < 30; i++) { const u = rnd(), x = lerp(-1400, 1400, u), off = (rnd() - .5) * 80; lanes.push({x:x + off * .514, y:bandY(x) + off * .857, r:40 + rnd() * 90, a:.45 + rnd() * .35}); }
+for (let i = 0; i < 2200; i++) { const u = rnd(), x = lerp(-1500, 1500, u), off = (rnd() + rnd() + rnd() - 1.5) * 240; bandDust.push({x:x + off * .514, y:bandY(x) + off * .857, s:rnd() < .86 ? 1 : 1.5, b:rnd() < .72 ? 0 : 1}); }
+const TILE = 2400;
+const dust = [{n:900, f:.05, size:1, al:[.08,.14,.2,.3]}, {n:340, f:.12, size:1.2, al:[.14,.24,.36,.5]}, {n:110, f:.24, size:1.5, al:[.2,.34,.5,.68]}].map(L => {
+  L.buckets = L.al.map((a, i) => ({style:i % 2 ? 'rgba(255,246,232,' + a + ')' : 'rgba(232,238,255,' + a + ')', pts:[]}));
+  for (let i = 0; i < L.n; i++) L.buckets[Math.floor(rnd() * L.buckets.length)].pts.push({x:rnd() * TILE, y:rnd() * TILE});
+  return L;
+});
+
+/* ================= layout state ================= */
+const canvas = $('sky'), ctx = canvas.getContext('2d');
+const skywin = $('skywin'), card = $('card'), panel = $('panel'), timeline = $('timeline'), composer = $('ask');
+let W = 0, Hh = 0, DPR = 1, WR = {left:0, top:0}, reserved = [];
+const isNarrow = () => window.innerWidth < 900;
+function resize() {
+  DPR = Math.min(2, window.devicePixelRatio || 1);
+  const r = canvas.getBoundingClientRect(); WR = {left:r.left, top:r.top};
+  W = r.width; Hh = r.height;
+  canvas.width = Math.round(W * DPR); canvas.height = Math.round(Hh * DPR);
+  ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  sizeTimeline();
+  // Screen areas the sky's labels must leave free: the timeline band and the floating controls.
+  reserved = [timeline, document.querySelector('.zoom'), $('lit')].map(el => { const b = el.getBoundingClientRect(); return {x:b.left - WR.left, y:b.top - WR.top, w:b.width, h:b.height}; }).filter(b => b.w > 0);
+  reserved.forEach(b => { if (b.h > 60) { b.y += 20; b.h -= 20; } });
+  wake();
+}
+const ZMIN = .22, ZMAX = 60;
+const cam = {x:0, y:0, z:1};
+let flight = null, zoomA = null;
+const vel = {x:0, y:0};
+const w2s = s => ({x:(s.x - cam.x) * cam.z + W / 2, y:(s.y - cam.y) * cam.z + Hh / 2});
+let cardOpen = false, clipR = 1e9;
+// The part of the window not covered by UI, in canvas coordinates.
+function region(withCard) {
+  const loc = el => { const r = el.getBoundingClientRect(); return {l:r.left - WR.left, t:r.top - WR.top, r:r.right - WR.left, b:r.bottom - WR.top, h:r.height}; };
+  let l = 0, r = W, t = 0, b = Hh;
+  const tl = loc(timeline);
+  b = tl.t + 22;
+  if (!isNarrow()) {
+    t = 56;
+    if (withCard || cardOpen) { const k = loc(card); r = k.h > 0 ? k.l - 12 : W - Math.min(392, W - 24) - 24; }
+  } else {
+    t = 84;
+    if (sheet.panel.state !== 'closed') b = Math.min(b, Hh - sheet.panel.visible());
+    if (withCard || cardOpen) b = Math.min(b, Hh - sheet.card.visibleFor(withCard ? 'peek' : sheet.card.state));
+  }
+  if (r - l < 160) { l = 0; r = W; }
+  if (b - t < 140) b = t + 140;
+  return {l, r, t, b, w:r - l, h:b - t, cx:(l + r) / 2, cy:(t + b) / 2};
+}
+let timeT = Infinity;
+const visibleT = s => !s.unborn && !s.removed && (timeT === Infinity || s.t <= timeT);
+function fitView(all) {
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const s of stars) { if (s.unborn || s.removed || (!all && !visibleT(s))) continue; x0 = Math.min(x0, s.x); x1 = Math.max(x1, s.x); y0 = Math.min(y0, s.y); y1 = Math.max(y1, s.y); }
+  if (x0 > x1) { x0 = -400; x1 = 400; y0 = -300; y1 = 300; }
+  const R = region(false);
+  const z = clamp(Math.min((R.w - 40) / (x1 - x0 + 200), (R.h - 20) / (y1 - y0 + 200)) * (isNarrow() ? 1.6 : 1), ZMIN, 3);
+  const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
+  return {x:cx - (R.cx - W / 2) / z, y:cy - (R.cy - Hh / 2) / z, z};
+}
+
+/* ================= camera motion ================= */
+function cancelFlight() {
+  if (!flight) return;
+  const f = flight; flight = null;
+  if (!f.midDone && f.mid) { f.midDone = true; f.mid(); }
+}
+// A flight is a path, not a spring: it eases out of the current view, dips out a little on long trips
+// (so you see where you are going), and lands. Any touch interrupts it from the live position.
+function flyTo(v, opts) {
+  opts = opts || {};
+  cancelFlight();
+  const from = {x:cam.x, y:cam.y, z:cam.z};
+  const sd = Math.hypot(v.x - from.x, v.y - from.y) * Math.min(from.z, v.z);
+  const dip = Math.min(1.4, Math.log2(1 + sd / (Math.min(W, Hh) * .8))) * .55;
+  const dur = RM ? 0 : clamp(650 + sd * .35 + Math.abs(Math.log2(v.z / from.z)) * 140, 700, 1600) * (opts.slow || 1);
+  zoomA = null; vel.x = vel.y = 0;
+  if (!dur) { cam.x = v.x; cam.y = v.y; cam.z = v.z; flight = null; if (opts.mid) opts.mid(); if (opts.done) opts.done(); wake(); return; }
+  flight = {from, to:v, t0:performance.now(), dur, dip, mid:opts.mid, done:opts.done, midDone:false};
+  wake();
+}
+function stepFlight(now) {
+  const f = flight, p = clamp((now - f.t0) / f.dur, 0, 1), e = easeIO(p);
+  cam.x = lerp(f.from.x, f.to.x, e); cam.y = lerp(f.from.y, f.to.y, e);
+  cam.z = Math.exp(lerp(Math.log(f.from.z), Math.log(f.to.z), e) - f.dip * Math.sin(Math.PI * e));
+  if (!f.midDone && p >= .62) { f.midDone = true; if (f.mid) f.mid(); }
+  if (p >= 1) { flight = null; if (f.done) f.done(); }
+}
+function zoomBy(f, sx, sy) {
+  const ax = sx == null ? W / 2 : sx, ay = sy == null ? Hh / 2 : sy;
+  const zt = clamp((zoomA ? zoomA.zt : cam.z) * f, ZMIN, ZMAX);
+  cancelFlight();
+  zoomA = {zt, ax, ay, wx:(ax - W / 2) / cam.z + cam.x, wy:(ay - Hh / 2) / cam.z + cam.y};
+  wake();
+}
+function stepZoom() {
+  const z = Math.exp(lerp(Math.log(cam.z), Math.log(zoomA.zt), RM ? 1 : .2));
+  cam.z = z; cam.x = zoomA.wx - (zoomA.ax - W / 2) / z; cam.y = zoomA.wy - (zoomA.ay - Hh / 2) / z;
+  if (Math.abs(Math.log(z / zoomA.zt)) < .002) { cam.z = zoomA.zt; cam.x = zoomA.wx - (zoomA.ax - W / 2) / cam.z; cam.y = zoomA.wy - (zoomA.ay - Hh / 2) / cam.z; zoomA = null; }
+}
+
+/* ================= a tiny spring (sheets on phones) ================= */
+// Critically damped by default. response = seconds to settle; velocity carries over from a drag.
+function springTo(st, target, v0, response, onStep, onDone) {
+  st.anim && (st.anim.dead = true);
+  const a = {dead:false}; st.anim = a;
+  if (RM) { st.y = target; onStep(st.y); onDone && onDone(); return; }
+  const k = Math.pow(2 * Math.PI / response, 2), c = 4 * Math.PI / response;
+  let v = v0 || 0, last = performance.now();
+  const tick = now => {
+    if (a.dead) return;
+    const dt = Math.min(.032, (now - last) / 1000); last = now;
+    const acc = -k * (st.y - target) - c * v; v += acc * dt; st.y += v * dt;
+    onStep(st.y);
+    if (Math.abs(st.y - target) < .5 && Math.abs(v) < 20) { st.y = target; onStep(st.y); st.anim = null; onDone && onDone(); return; }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+function makeSheet(el, grabEl, opts) {
+  const st = {y:0, state:'closed', anim:null};
+  const full = () => el.getBoundingClientRect().height || window.innerHeight * .88;
+  const peekH = () => Math.min(full(), opts.peek());
+  const targetY = s => s === 'full' ? 0 : s === 'peek' ? full() - peekH() : full() + 30;
+  const apply = y => { el.style.transform = 'translateY(' + y + 'px)'; if (opts.onMove) opts.onMove(); };
+  const api = {
+    get state() { return st.state; },
+    visible() { return st.state === 'closed' ? 0 : full() - targetY(st.state); },
+    visibleFor(s) { return s === 'closed' ? 0 : full() - targetY(s); },
+    open(s, v0) {
+      if (!isNarrow()) return;
+      const wasClosed = st.state === 'closed';
+      st.state = s || 'peek';
+      el.classList.add('shown');
+      el.style.setProperty('--hide', targetY(st.state) + 'px');
+      if (wasClosed && !st.anim) { st.y = full() + 30; apply(st.y); }
+      springTo(st, targetY(st.state), v0, .42, apply);
+      if (opts.onState) opts.onState(st.state);
+    },
+    close(v0) {
+      if (st.state === 'closed') return;
+      st.state = 'closed';
+      springTo(st, targetY('closed'), v0, .36, apply, () => { if (st.state === 'closed') { el.classList.remove('shown'); if (opts.onClosed) opts.onClosed(); } });
+      if (opts.onState) opts.onState('closed');
+    },
+    reset() { st.anim && (st.anim.dead = true); st.anim = null; st.state = 'closed'; el.style.transform = ''; el.classList.remove('shown'); },
+  };
+  // Drag the grabber: track 1:1, rubber-band above the top, project momentum to pick the resting detent.
+  let drag = null;
+  grabEl.addEventListener('pointerdown', e => {
+    if (!isNarrow() || st.state === 'closed') return;
+    if (e.target.closest('button')) return;
+    grabEl.setPointerCapture(e.pointerId);
+    st.anim && (st.anim.dead = true); st.anim = null;
+    drag = {y0:e.clientY, s0:st.y, hist:[{t:performance.now(), y:e.clientY}]};
+  });
+  grabEl.addEventListener('pointermove', e => {
+    if (!drag) return;
+    let y = drag.s0 + (e.clientY - drag.y0);
+    if (y < 0) { const o = -y, d = full(); y = -(o * d * .55) / (d + .55 * o); }
+    st.y = y; apply(y);
+    drag.hist.push({t:performance.now(), y:e.clientY}); if (drag.hist.length > 6) drag.hist.shift();
+  });
+  const end = () => {
+    if (!drag) return;
+    const h = drag.hist, a = h[0], b = h[h.length - 1];
+    const v = (b.y - a.y) / Math.max(16, b.t - a.t) * 1000; // px per second
+    drag = null;
+    const d = .998, projected = st.y + (v / 1000) * d / (1 - d);
+    const cands = ['full', 'peek', 'closed'].map(s => [s, Math.abs(targetY(s) - projected)]).sort((x, y) => x[1] - y[1]);
+    const s = cands[0][0];
+    if (s === 'closed') api.close(v); else api.open(s, v);
+  };
+  grabEl.addEventListener('pointerup', end); grabEl.addEventListener('pointercancel', end);
+  return api;
+}
+const sheet = {};
+sheet.panel = makeSheet(panel, $('panelGrab'), {
+  peek: () => Math.max(window.innerHeight * .58, 430),
+  onMove: () => {},
+  onState: s => { document.body.classList.toggle('panel-open', s !== 'closed'); },
+});
+sheet.card = makeSheet(card, $('cardGrab'), {
+  peek: () => window.innerHeight * .58,
+  onClosed: () => { card.hidden = true; },
+  onState: s => { if (s === 'closed') finishDeselect(); },
+});
+
+/* ================= interaction state ================= */
+let sel = null, selT0 = 0, selNear = new Set(), focusMix = 0;
+let hover = null, search = null, searchMix = 0;
+const flares = []; let comet = null;
+let introT0 = 0, introOn = true;
+const toastEl = $('toast'); let toastTimer = 0, toastAction = null;
+function toast(msg, action) {
+  $('toastText').textContent = msg;
+  toastAction = action || null;
+  $('toastBtn').hidden = !action; toastEl.classList.toggle('nobtn', !action);
+  if (action) $('toastBtn').textContent = action.label;
+  toastEl.classList.add('on'); clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toastEl.classList.remove('on'), action ? 6000 : 2600);
+}
+$('toastBtn').addEventListener('click', () => { const a = toastAction; toastEl.classList.remove('on'); toastAction = null; if (a) a.run(); });
+
+function pick(x, y) {
+  let best = null, bd = 1e9;
+  for (const s of stars) {
+    if (!s._on) continue;
+    const d = Math.hypot(s._sx - x, s._sy - y), th = Math.max(16, s._r * 3);
+    if (d < th && d < bd) { bd = d; best = s; }
+  }
+  return best;
+}
+function nearest(s, k) {
+  return HUB[s.hub].stars.filter(o => o !== s && visibleT(o))
+    .map(o => [o, Math.hypot(o.x - s.x, o.y - s.y)]).sort((a, b) => a[1] - b[1]).slice(0, k).map(a => a[0]);
+}
+
+/* ================= the card ================= */
+const cardBody = $('cardBody');
+function rowHTML(o, meta) {
+  return '<button class="row press" data-go="' + o.id + '"><span class="dot" style="--c:' + ageCss(o.t) + '"></span><span class="t">' + esc(o.title) + '</span><span class="m num">' + esc(meta || fmtShort(o.t)) + '</span></button>';
+}
+function renderCard(s, opts) {
+  const hub = HUB[s.hub];
+  const f = s.found || FOUND[s.src];
+  const i = chron.indexOf(s), prev = i > 0 ? chron[i - 1] : null;
+  let h = '<h2 id="cTitle" class="reveal">' + esc(s.title) + '</h2>';
+  h += '<p class="sub reveal">' + esc(KIND[s.type]) + ' in ' + esc(hub.name) + (s.replacedBy ? ', earlier version' : '') + '</p>';
+  if (opts.why) h += '<p class="why reveal">' + esc(opts.why) + '</p>';
+  if (s.now) h += '<section class="reveal"><h3>Now</h3><p class="now-line">' + esc(s.now) + '</p></section>';
+  if (s.replacedBy) { const r = byId[s.replacedBy]; h += '<section class="reveal"><h3>Replaced by</h3><button class="hist press" data-go="' + r.id + '"><span>' + esc(r.title) + '</span><span class="m num">' + esc(fmtShort(r.t)) + '</span></button></section>'; }
+  if (s.earlier) h += '<section class="reveal"><h3>Earlier</h3>' + s.earlier.map(id => { const e = byId[id]; return '<button class="hist press" data-go="' + e.id + '"><s>' + esc(e.title.replace(/^Favorite fruit: /, '')) + '</s><span class="m num">until ' + esc(fmtShort(s.t)) + '</span></button>'; }).join('') + '</section>';
+  h += '<section class="reveal"><h3>You sent, from ' + esc(SRC_LABEL[s.src]) + '</h3><div class="bubble-wrap"><p class="bubble">' + esc(s.raw) + '<span class="time num">' + esc(fmtTime(s.t)) + '</span></p></div></section>';
+  if (s.list) h += '<section class="reveal"><h3>Read as a list</h3>' + s.list.map(n => '<div class="row" style="cursor:default"><span class="dot" style="--c:' + ageCss(s.t) + '"></span><span class="t">' + esc(n) + '</span></div>').join('') + '</section>';
+  if (f) h += '<section class="reveal"><h3>It found, from ' + esc(f.method) + '</h3><div class="found"><p>' + esc(f.text) + '</p>' + (f.pill || f.source ? '<div class="foot">' + (f.pill ? '<span class="pill">' + esc(f.pill) + '</span>' : '') + (f.source ? '<span>' + esc(f.source) + '</span>' : '') + '</div>' : '') + '</div></section>';
+  if (s.guess) h += '<section class="reveal"><h3>Its guess</h3><p class="guess">' + esc(s.guess) + '</p></section>';
+  h += '<dl class="kv reveal"><dt>Saved</dt><dd class="num">' + esc(fmtFull(s.t)) + '<span class="rel">' + esc(rel(s.t)) + '</span></dd>';
+  if (prev) h += '<dt>Before this</dt><dd><button class="linkbtn" data-go="' + prev.id + '">' + esc(prev.title) + '</button><span class="rel">' + esc(gap(prev.t, s.t)) + '</span></dd>';
+  h += '</dl>';
+  const near = nearest(s, 3);
+  if (near.length) h += '<section class="reveal"><h3>Nearby in ' + esc(hub.name) + '</h3>' + near.map(o => rowHTML(o)).join('') + '</section>';
+  h += '<div class="actions reveal"><button class="press" data-act="move">Move</button><button class="press" data-act="edit">Edit</button><button class="press" data-act="forget">Forget</button></div>';
+  cardBody.innerHTML = h;
+  cardBody.scrollTop = 0;
+  if (!RM) cardBody.querySelectorAll('.reveal').forEach((el, k) => { el.style.animationDelay = (90 + k * 40) + 'ms'; });
+}
+// Desktop: the card grows out of the star it belongs to.
+function bloom(s) {
+  if (isNarrow()) return;
+  card.hidden = false; cardOpen = true; document.body.classList.add('card-open');
+  const r = card.getBoundingClientRect(), p = w2s(s);
+  clipR = r.left - WR.left - 8;
+  const ox = clamp(p.x + WR.left - r.left, -60, r.width + 60), oy = clamp(p.y + WR.top - r.top, 0, r.height);
+  card.style.transformOrigin = ox + 'px ' + oy + 'px';
+  if (RM) { card.animate([{opacity:0}, {opacity:1}], {duration:200, easing:'ease'}); return; }
+  card.animate([{transform:'scale(.86)', opacity:0}, {transform:'scale(1)', opacity:1}], {duration:460, easing:'cubic-bezier(.16,1,.3,1)'});
+}
+function select(s, opts) {
+  opts = opts || {};
+  if (s.removed) return;
+  if (!visibleT(s)) setTimeNow();
+  const wasOpen = cardOpen;
+  sel = s; selT0 = performance.now();
+  selNear = new Set(nearest(s, 4).map(o => o.id));
+  (s.earlier || []).forEach(id => selNear.add(id));
+  if (s.replacedBy) selNear.add(s.replacedBy);
+  haptic('select');
+  renderCard(s, opts);
+  if (isNarrow()) {
+    if (sheet.panel.state !== 'closed') sheet.panel.close();
+    card.hidden = false; cardOpen = true; document.body.classList.add('card-open');
+    sheet.card.open(sheet.card.state === 'full' ? 'full' : 'peek');
+  }
+  const R = region(true);
+  let md = 60; selNear.forEach(id => { const o = byId[id]; if (o) md = Math.max(md, Math.hypot(o.x - s.x, o.y - s.y)); });
+  const z = clamp(opts.z || Math.min(R.w, R.h) * .42 / md, 2.2, 7);
+  flyTo({x:s.x - (R.cx - W / 2) / z, y:s.y - (R.cy - Hh / 2) / z, z}, {mid:() => { if (!isNarrow() && !wasOpen && sel === s) bloom(s); }});
+  wake();
+}
+function finishDeselect() {
+  if (!sel && !cardOpen) return;
+  sel = null; selNear = new Set(); cardOpen = false;
+  document.body.classList.remove('card-open');
+  wake();
+}
+function deselect() {
+  if (!sel && !cardOpen) return;
+  if (isNarrow()) { sheet.card.close(); finishDeselect(); return; }
+  const s = sel; finishDeselect();
+  if (card.hidden) return;
+  if (s) { const r = card.getBoundingClientRect(), p = w2s(s); card.style.transformOrigin = clamp(p.x + WR.left - r.left, -60, r.width + 60) + 'px ' + clamp(p.y + WR.top - r.top, 0, r.height) + 'px'; }
+  const a = card.animate(RM ? [{opacity:1}, {opacity:0}] : [{transform:'scale(1)', opacity:1}, {transform:'scale(.9)', opacity:0}], {duration:RM ? 150 : 220, easing:'cubic-bezier(.4,0,1,1)'});
+  a.onfinish = () => { if (!cardOpen) card.hidden = true; };
+}
+$('cClose').addEventListener('click', deselect);
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-go]'); if (!b) return;
+  const s = byId[b.dataset.go]; if (!s) return;
+  if (isNarrow() && sheet.panel.state !== 'closed') sheet.panel.close();
+  select(s, {why:b.dataset.why || ''});
+});
+cardBody.addEventListener('click', e => {
+  const b = e.target.closest('[data-act]'); if (!b || !sel) return;
+  const s = sel, act = b.dataset.act;
+  if (act === 'forget') { forget(s); }
+  else if (act === 'move') toast('Moving to another constellation works in the full app');
+  else toast('Editing works in the full app');
+});
+function forget(s) {
+  s.removed = true; sortChron(); HUB[s.hub].edges = mst(HUB[s.hub].stars.filter(o => !o.removed));
+  deselect(); clearSearch(); renderRecent(); updateScope(); drawTimeline();
+  toast('Forgotten', {label:'Undo', run:() => { s.removed = false; sortChron(); HUB[s.hub].edges = mst(HUB[s.hub].stars.filter(o => !o.removed)); renderRecent(); updateScope(); drawTimeline(); select(s); }});
+}
+
+/* ================= search (a small, honest stand-in for the real one) ================= */
+const STOP = new Set('i me my mine you your yours we our the a an and or but was were is are am be been it its that this these those to of in on at for from with about around approximately roughly like maybe something some thing things stuff did didnt do does done give gave given sent send saved save link links what whats where which who whom when why how there any again find show tell told remember think thought had have has can could would should please just kind sort also too very really got get put'.split(' '));
+const TIMEW = new Set(['ago','day','days','week','weeks','month','months','year','years','yesterday','today','last','couple','few','morning']);
+const SRCW = new Set(['insta','instagram','ig','reel','reels','youtube','yt','github','repo','gh','screenshot','screenshots','voice','note','notes']);
+const NUM = {a:1, an:1, one:1, two:2, three:3, four:4, five:5, six:6, seven:7, eight:8, nine:9, ten:10, couple:2, few:3};
+const SYN = {
+  ai:['ai','agent','muse','llm','prompt','model'], fps:['fps','xmp','game mode','gpu','nvidia','frame','latency'],
+  fruit:['fruit','apple','banana','orange'], favorite:['favorite'], favourite:['favorite'], fav:['favorite'],
+  email:['email','@'], mail:['email','@'], palette:['palette','#','color'], color:['palette','#','color'], colour:['palette','#','color'],
+  song:['song','music','album','playlist','lo-fi'], music:['song','music','album','playlist','lo-fi'],
+  friend:['friend','alex','guy','josh'], pc:['pc','fps','gpu','bios','gaming'], computer:['pc','fps','gpu','bios'], gaming:['fps','gpu','gaming','pc']
+};
+function parseQuery(q) {
+  const s = ' ' + q.toLowerCase().replace(/[’']/g, "'") + ' ';
+  let src = null;
+  if (/\b(insta|instagram|ig|reels?)\b/.test(s)) src = 'instagram';
+  else if (/\b(youtube|yt)\b/.test(s)) src = 'youtube';
+  else if (/\b(github|repo|gh)\b/.test(s)) src = 'github';
+  else if (/\bscreenshots?\b/.test(s)) src = 'screenshot';
+  else if (/\bvoice\b/.test(s)) src = 'voice';
+  let ageDays = null;
+  const m = s.match(/(\d+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|couple|few)\s+(?:of\s+)?(day|week|month|year)s?\s+ago/);
+  if (m) { const n = isNaN(+m[1]) ? NUM[m[1]] : +m[1]; ageDays = n * {day:1, week:7, month:30.4, year:365}[m[2]]; }
+  else if (/\byesterday\b/.test(s)) ageDays = 1;
+  else if (/\blast week\b/.test(s)) ageDays = 7;
+  else if (/\blast month\b/.test(s)) ageDays = 30;
+  else if (/\b(today|this morning)\b/.test(s)) ageDays = .25;
+  const words = s.replace(/https?:\S+/g, ' ').replace(/[^a-z0-9#@\s-]/g, ' ').split(/\s+/).filter(w => w.length > 1);
+  const groups = [], shown = [];
+  for (const w of words) {
+    if (STOP.has(w) || TIMEW.has(w) || SRCW.has(w) || NUM[w] !== undefined || /^\d+$/.test(w)) continue;
+    const base = w.length > 4 && w.endsWith('s') ? w.slice(0, -1) : w;
+    groups.push(SYN[base] || SYN[w] || [base]); shown.push(w);
+  }
+  return {src, ageDays, target:ageDays != null ? NOW - ageDays * DAY : null, groups, shown};
+}
+function has(s, v, title) {
+  if (/^[a-z0-9]{1,3}$/.test(v)) return (title ? s.tw : s.words).has(v);
+  return (title ? s.tl : s.doc).includes(v);
+}
+function score(r) {
+  const G = r.groups.length;
+  if (!G && !r.src && r.target == null) return [];
+  const out = [];
+  for (const s of stars) {
+    if (s.unborn || s.removed) continue;
+    let hits = 0, th = 0;
+    for (const g of r.groups) if (g.some(v => has(s, v))) { hits++; if (g.some(v => has(s, v, true))) th++; }
+    if (G && !hits) continue;
+    let w = .3 + (G ? hits / G : 1) + .3 * (G ? th / G : 0);
+    if (r.src) w *= s.src === r.src ? 1.7 : .1;
+    if (r.target != null) { const diff = (s.t - r.target) / DAY; let sig = Math.max(1.5, .35 * r.ageDays); if (diff < 0) sig *= 1.6; w *= Math.max(.04, Math.exp(-.5 * (diff / sig) * (diff / sig))); }
+    if (s.replacedBy) w *= .55;
+    w *= .85 + .3 * s.imp;
+    out.push({s, w});
+  }
+  out.sort((a, b) => b.w - a.w);
+  if (!out.length) return out;
+  const top = out[0].w;
+  return out.filter(x => x.w >= top * .32).slice(0, 12);
+}
+const fmtWord = w => w.length <= 3 ? w.toUpperCase() : w;
+function clueList(r) {
+  const c = [];
+  if (r.src) c.push(SRC_SHORT[r.src]);
+  if (r.target != null) c.push('around ' + fmtShort(r.target));
+  r.shown.forEach(w => c.push(fmtWord(w)));
+  return c;
+}
+function whyLine(r, best) {
+  const parts = [];
+  if (r.src && best.src === r.src) parts.push('from ' + SRC_SHORT[r.src]);
+  if (r.target != null) parts.push('saved ' + rel(best.t));
+  if (r.shown.length) parts.push('about ' + r.shown.map(fmtWord).join(' and '));
+  return parts.length ? 'Matched: ' + parts.join(', ') + '.' : '';
+}
+function compose(r, best) {
+  if (best.ans) return best.ans;
+  let s = (r.src || r.target != null) ? 'Yes. ' : '';
+  s += cap(rel(best.t)) + ', on ' + fmtFull(best.t) + ', you saved “' + best.title + '”.';
+  if (best.now && best.earlier) s += ' Now: ' + best.now.toLowerCase() + '. Earlier ones are kept.';
+  return s;
+}
+function lightSky(results) {
+  const set = new Set(results.map(x => x.s.id)), d = new Map();
+  for (const s of stars) { const p = w2s(s); d.set(s.id, Math.hypot(p.x - W / 2, p.y - Hh / 2)); }
+  search = {set, top:results[0] ? results[0].s : null, t0:performance.now(), d};
+  $('lit').hidden = false;
+  $('litText').textContent = set.size === 1 ? '1 match' : set.size + ' matches';
+  wake();
+}
+function clearSearch() { search = null; $('lit').hidden = true; wake(); }
+$('clearLit').addEventListener('click', clearSearch);
+
+/* ================= conversation ================= */
+const thread = $('thread'), q = $('q');
+let mode = 'ask', asked = false;
+function addMsg(cls, html) {
+  const el = document.createElement('div');
+  el.className = 'msg ' + cls; el.innerHTML = html;
+  thread.appendChild(el);
+  requestAnimationFrame(() => { thread.scrollTop = isNarrow() ? el.offsetTop - thread.offsetTop - 8 : thread.scrollHeight; });
+  return el;
+}
+function drawMini(cv, best, others) {
+  const S = 2, g = cv.getContext('2d'), Wm = cv.width, Hm = cv.height;
+  g.fillStyle = '#000'; g.fillRect(0, 0, Wm, Hm);
+  // Frame the answer's constellation and its neighbours, not the whole sky.
+  const hub = HUB[best.hub], span = hub.s * 2.6;
+  const k = Wm / span, ox = Wm / 2 - best.x * k, oy = Hm / 2 - best.y * k;
+  g.globalCompositeOperation = 'lighter';
+  for (const s of stars) {
+    if (s.unborn || s.removed) continue;
+    const x = s.x * k + ox, y = s.y * k + oy; if (x < -10 || x > Wm + 10 || y < -10 || y > Hm + 10) continue;
+    const sz = (6 + s.imp * 10) * S; g.globalAlpha = .25 + s.imp * .45; g.drawImage(GLOW[s.bin], x - sz / 2, y - sz / 2, sz, sz);
+  }
+  const hx = best.x * k + ox, hy = best.y * k + oy;
+  g.globalAlpha = 1; g.drawImage(GLOW[best.bin], hx - 26 * S / 2, hy - 26 * S / 2, 26 * S, 26 * S);
+  g.globalCompositeOperation = 'source-over';
+  g.strokeStyle = 'rgba(255,255,255,.95)'; g.lineWidth = 1.5 * S; g.beginPath(); g.arc(hx, hy, 11 * S, 0, 6.283); g.stroke();
+}
+function answerHTML(r, best, others, clues) {
+  const why = whyLine(r, best);
+  let h = clues.length ? '<div class="understood">' + clues.map((c, i) => '<span class="clue" style="animation-delay:' + (i * 90) + 'ms">' + esc(c) + '</span>').join('') + '</div>' : '';
+  h += '<p>' + esc(compose(r, best)) + '</p>';
+  h += '<button class="result press" data-go="' + best.id + '" data-why="' + esc(why) + '" aria-label="Show ' + esc(best.title) + ' in the sky">';
+  h += '<canvas width="144" height="144" aria-hidden="true"></canvas>';
+  h += '<span class="r-title">' + esc(best.title) + '</span>';
+  h += '<span class="r-sub"><span class="r-meta num">' + esc(HUB[best.hub].name) + ', ' + esc(fmtShort(best.t)) + '</span></span><span class="r-go">Show in sky</span></button>';
+  if (others.length) h += '<div class="also"><h4>Also close</h4>' + others.map(o => rowHTML(o)).join('') + '</div>';
+  h += '<div class="fb" role="group" aria-label="Was this right?"><button class="press" data-fb="found" aria-pressed="false">Found it</button><button class="press" data-fb="not" aria-pressed="false">Not it</button><span></span></div>';
+  return h;
+}
+thread.addEventListener('click', e => {
+  const b = e.target.closest('[data-fb]'); if (!b) return;
+  const g = b.parentElement; g.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+  g.querySelector('span').textContent = b.dataset.fb === 'found' ? 'Thanks. That helps the next search.' : 'Thanks. Try adding when or where you saw it.';
+});
+function ask(text) {
+  setTimeNow();
+  asked = true; $('intro').hidden = true; $('sugg').hidden = true; document.body.classList.remove('has-sugg');
+  showTab('ask');
+  if (isNarrow()) { if (cardOpen) deselect(); sheet.panel.open('peek'); }
+  addMsg('me', '<p>' + esc(text) + '</p>');
+  const r = parseQuery(text), res = score(r), clues = clueList(r);
+  const think = addMsg('ai', (clues.length ? '<div class="understood">' + clues.map((c, i) => '<span class="clue" style="animation-delay:' + (i * 90) + 'ms">' + esc(c) + '</span>').join('') + '</div>' : '') +
+    '<p class="status"><i></i>Looking through ' + chron.length + ' memories' + (r.target != null ? ' from around ' + esc(fmtShort(r.target)) : '') + '</p>');
+  if (res.length) lightSky(res);
+  setTimeout(() => {
+    think.remove();
+    if (!res.length) { addMsg('ai', '<p>I couldn’t find that. Try fewer words, or add a rough time like “last month”.</p>'); clearSearch(); return; }
+    const best = res[0].s, others = res.slice(1, 4).map(x => x.s);
+    const m = addMsg('ai', answerHTML(r, best, others, clues));
+    m.querySelectorAll('.clue').forEach(c => { c.style.animation = 'none'; });
+    drawMini(m.querySelector('canvas'), best, others);
+    if (isNarrow()) sheet.panel.open('peek');
+    const R = region(false), z = clamp(Math.max(cam.z, 2.4), ZMIN, 4.5);
+    flyTo({x:best.x - (R.cx - W / 2) / z, y:best.y - (R.cy - Hh / 2) / z, z}, {slow:1.15});
+  }, RM ? 150 : 1100);
+}
+function composerCenterInCanvas() { const r = composer.getBoundingClientRect(); return {x:r.left + r.width * .8 - WR.left, y:r.top + r.height / 2 - WR.top}; }
+function createFromText(text) {
+  const lo = text.toLowerCase();
+  const fm = lo.match(/favou?rite fruits? (?:is|are) now (?:an? )?([a-z][a-z ]{1,24}?)[.!]*$/);
+  if (fm) {
+    const fruit = fm[1].trim(), cur = ['banana', 'orange'].map(id => byId[id]).filter(o => !o.replacedBy && !o.removed);
+    const b = byId.banana;
+    const s = addStar({id:'n' + Date.now(), hub:'fav', type:'fact', src:'typed', d:NOW + (performance.now() - bootT), title:'Favorite fruit: ' + fruit, raw:text.trim(), imp:.88,
+      now:cap(fruit), earlier:cur.map(o => o.id), found:{method:'your own words', text:'“Now” in your message means the old favorites were replaced, not joined. They are kept under Earlier, and Undo puts them back.'}});
+    s.x = b.x + 34; s.y = b.y + 30; s.dc = 0; s.unborn = true; s.created = performance.now();
+    s.replaces = cur; HUB.fav.edges = mst(HUB.fav.stars);
+    return s;
+  }
+  const um = text.match(/https?:\/\/\S+|\b[\w-]+\.(?:com|io|dev|org|net|be|me)\/\S*/i);
+  const url = um ? um[0] : null;
+  let src = 'typed';
+  if (url) src = /instagram/i.test(url) ? 'instagram' : /youtu/i.test(url) ? 'youtube' : /github/i.test(url) ? 'github' : 'web';
+  const RULES = [['ai', /\b(ai|llm|gpt|agent|prompt|model|muse)\b/], ['pc', /\b(fps|gpu|cpu|bios|driver|pc|monitor|nvidia)\b/], ['design', /(#[0-9a-f]{3,6}\b|\b(palette|font|design|portfolio|figma|logo)\b)/], ['music', /\b(song|music|album|playlist|band)\b/], ['fav', /\bfavou?rite\b/], ['reading', /\b(book|movie|series|article|watch|read|podcast)\b/], ['food', /\b(recipe|cook|food|eat|dinner|lunch|cafe)\b/], ['people', /([\w.+-]+@[\w-]+\.|\b(email|phone|met|friend|mom|dad|brother|sister)\b)/], ['plans', /\b(todo|to-do|tomorrow|today|buy|call|pay|renew|remind)\b/], ['places', /\b(trail|hotel|park|museum|place|beach|viewpoint)\b/]];
+  let hub = null;
+  for (const rule of RULES) if (rule[1].test(lo)) { hub = rule[0]; break; }
+  if (!hub) hub = url ? 'reading' : 'ideas';
+  const type = url ? 'link' : hub === 'people' ? 'person' : hub === 'fav' ? 'fact' : hub === 'plans' ? 'todo' : text.length > 40 ? 'idea' : 'note';
+  const rest = url ? text.replace(url, '').trim() : text.trim();
+  const title = rest ? cap(rest.length > 64 ? rest.slice(0, 62) + '…' : rest) : SRC_SHORT[src] + ' link, saved with no note';
+  const h = HUB[hub];
+  let best = null, bd = -1;
+  for (let i = 0; i < 16; i++) {
+    const a = Math.random() * 6.283, r = h.s * (.45 + .55 * Math.random());
+    const x = h.x + Math.cos(a) * r, y = h.y + Math.sin(a) * r * .86;
+    let md = 1e9; for (const o of h.stars) md = Math.min(md, Math.hypot(o.x - x, o.y - y));
+    if (md > bd) { bd = md; best = {x, y}; }
+  }
+  const s = addStar({id:'n' + Date.now(), hub, type, src, d:NOW + (performance.now() - bootT), title, raw:text.trim(), imp:.78,
+    found:{method:'Muse Spark', text:url ? 'In the full app, the link is read (or researched on the web) the moment you save it, and what it found appears here.' : 'Nothing to look up. Your own words are the memory.'}});
+  s.x = best.x; s.y = best.y; s.dc = 0; s.unborn = true; s.created = performance.now();
+  h.edges = mst(h.stars);
+  return s;
+}
+function saveNugget(text) {
+  setTimeNow();
+  const s = createFromText(text), hub = HUB[s.hub];
+  if (isNarrow()) sheet.panel.close();
+  else { showTab('ask'); addMsg('me', '<span class="saved-as">Saved</span><p>' + esc(text) + '</p>'); }
+  clearSearch(); if (sel) deselect();
+  const z = clamp(Math.max(cam.z, 2.2), ZMIN, 5), R = region(false);
+  flyTo({x:s.x - (R.cx - W / 2) / z, y:s.y - (R.cy - Hh / 2) / z, z});
+  const from = composerCenterInCanvas();
+  comet = {s, t0:performance.now() + (RM ? 0 : 240), dur:RM ? 1 : 1150, fx:from.x, fy:from.y, trail:[]};
+  wake();
+}
+function landed(s) {
+  if (s.replaces) s.replaces.forEach(o => { o.replacedBy = s.id; o.prevNow = o.now; o.now = null; });
+  sortChron(); updateScope(); renderRecent(); renderLately(); drawTimeline();
+  const hub = HUB[s.hub];
+  if (s.replaces) {
+    if (!isNarrow()) addMsg('ai', '<p>Updated: your favorite fruit is now ' + esc(s.now.toLowerCase()) + '. Banana and orange are kept under Earlier.</p>' + rowHTML(s, 'just now'));
+    toast('Favorite fruit is now ' + s.now.toLowerCase(), {label:'Undo', run:() => { s.removed = true; s.replaces.forEach(o => { o.replacedBy = null; o.now = o.prevNow; }); sortChron(); hub.edges = mst(hub.stars.filter(o => !o.removed)); if (sel === s) deselect(); updateScope(); renderRecent(); renderLately(); drawTimeline(); wake(); }});
+    return;
+  }
+  if (!isNarrow()) addMsg('ai', '<p>Filed in ' + esc(hub.name) + '.</p>' + rowHTML(s, 'just now'));
+  toast('Filed in ' + hub.name, {label:'Undo', run:() => { s.removed = true; sortChron(); hub.edges = mst(hub.stars.filter(o => !o.removed)); if (sel === s) deselect(); updateScope(); renderRecent(); renderLately(); drawTimeline(); wake(); }});
+}
+composer.addEventListener('submit', e => {
+  e.preventDefault();
+  const text = q.value.trim(); if (!text) return;
+  q.value = ''; $('go').disabled = true;
+  if (mode === 'ask') ask(text); else saveNugget(text);
+});
+q.addEventListener('input', () => { $('go').disabled = !q.value.trim(); });
+function setMode(m) {
+  mode = m;
+  $('mAsk').setAttribute('aria-selected', String(m === 'ask'));
+  $('mSave').setAttribute('aria-selected', String(m === 'save'));
+  q.placeholder = m === 'ask' ? 'Ask anything you saved' : 'Save anything';
+  q.setAttribute('aria-label', m === 'ask' ? 'Ask your sky' : 'Save something');
+  $('attach').hidden = m !== 'save';
+  q.focus();
+}
+$('mAsk').addEventListener('click', () => setMode('ask'));
+$('mSave').addEventListener('click', () => setMode('save'));
+$('attach').addEventListener('click', () => toast('Voice notes and screenshots work in the full app and in Telegram'));
+const SUGG = ['insta link about AI, ~2 weeks ago', 'what’s my favorite fruit?', 'that FPS fix', 'Josh’s email', 'palette from GitHub', 'who are my best friends?'];
+const arrow = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M13 6l6 6-6 6"/></svg>';
+$('tries').innerHTML = SUGG.map(s => '<li><button type="button" class="try press" data-q="' + esc(s) + '"><span>' + esc(s) + '</span>' + arrow + '</button></li>').join('');
+$('sugg').innerHTML = SUGG.map(s => '<button type="button" class="press" data-q="' + esc(s) + '">' + esc(s) + '</button>').join('');
+document.body.classList.add('has-sugg');
+const onTry = e => { const b = e.target.closest('[data-q]'); if (!b) return; if (mode !== 'ask') setMode('ask'); ask(b.dataset.q); };
+$('tries').addEventListener('click', onTry); $('sugg').addEventListener('click', onTry);
+
+/* ================= tabs: Ask / Recent ================= */
+let recentFilter = 'all';
+function showTab(t) {
+  $('tabAsk').setAttribute('aria-selected', String(t === 'ask'));
+  $('tabRecent').setAttribute('aria-selected', String(t === 'recent'));
+  $('thread').hidden = t !== 'ask'; $('recent').hidden = t !== 'recent';
+  $('panelTitle').textContent = t === 'ask' ? 'Your sky' : 'Recent';
+}
+$('tabAsk').addEventListener('click', () => showTab('ask'));
+$('tabRecent').addEventListener('click', () => showTab('recent'));
+$('recentBtn').addEventListener('click', () => { showTab('recent'); if (cardOpen) deselect(); sheet.panel.open('full'); });
+$('panelClose').addEventListener('click', () => sheet.panel.close());
+$('skipLink').addEventListener('click', () => { showTab('recent'); if (isNarrow()) sheet.panel.open('full'); });
+const FILTERS = [['all', 'All'], ['link', 'Links'], ['todo', 'To-dos'], ['person', 'People'], ['fact', 'Facts'], ['idea', 'Ideas'], ['note', 'Notes']];
+$('filters').innerHTML = FILTERS.map(f => '<button class="press" data-f="' + f[0] + '" aria-pressed="' + (f[0] === 'all') + '">' + f[1] + '</button>').join('');
+$('filters').addEventListener('click', e => { const b = e.target.closest('[data-f]'); if (!b) return; recentFilter = b.dataset.f; $('filters').querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); renderRecent(); });
+function renderRecent() {
+  const list = chron.filter(s => recentFilter === 'all' || s.type === recentFilter).slice().reverse().slice(0, 120);
+  let h = '', last = '';
+  for (const s of list) {
+    const d = dayLabel(s.t);
+    if (d !== last) { h += '<div class="rday">' + esc(d) + '</div>'; last = d; }
+    h += '<button class="rrow press" data-go="' + s.id + '"><span class="dot" style="--c:' + ageCss(s.t) + '"></span><span class="t">' + esc(s.title) + '</span><span class="m num">' + esc(fmtTime(s.t)) + '</span><span class="s">' + esc(HUB[s.hub].name) + ', ' + esc(SRC_SHORT[s.src]) + '</span></button>';
+  }
+  $('rlist').innerHTML = h || '<p style="color:var(--muted);padding:12px 4px">Nothing here yet.</p>';
+}
+function renderLately() {
+  $('latelyList').innerHTML = chron.slice(-4).reverse().map(o => rowHTML(o, rel(o.t))).join('');
+}
+function updateScope() {
+  const n = stars.filter(visibleT).length;
+  const first = new Date(chron.length ? chron[0].t : NOW);
+  $('scope').textContent = timeT === Infinity ? 'Sample memory, ' + n + ' stars since ' + MON[first.getMonth()] + ' ' + first.getFullYear() : 'Sky as of ' + fmtDay(timeT) + ', ' + n + ' stars';
+}
+
+/* ================= timeline: saves per week, coloured by age ================= */
+const tlc = $('tl'), tctx = tlc.getContext('2d'), tlWrap = $('tlWrap'), tlLabel = $('tlLabel');
+let TW = 0, TH = 0, tv = 1000;
+function sizeTimeline() {
+  const r = tlWrap.getBoundingClientRect(); TW = r.width; TH = r.height;
+  tlc.width = Math.round(TW * DPR); tlc.height = Math.round(TH * DPR); tctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  drawTimeline();
+}
+const tOf = v => tMin + (NOW - tMin) * v / 1000;
+function drawTimeline() {
+  if (!TW) return;
+  tctx.clearRect(0, 0, TW, TH);
+  const weeks = Math.ceil((NOW - tMin) / (7 * DAY)), counts = new Array(weeks).fill(0);
+  for (const s of chron) { const i = Math.min(weeks - 1, Math.floor((s.t - tMin) / (7 * DAY))); counts[i]++; }
+  const max = Math.max(3, ...counts), bw = TW / weeks, base = TH - 16, top = 4;
+  const cut = timeT === Infinity ? Infinity : timeT;
+  for (let i = 0; i < weeks; i++) {
+    const mid = tMin + (i + .5) * 7 * DAY, h = counts[i] ? Math.max(2, (base - top) * Math.sqrt(counts[i] / max)) : 1;
+    tctx.fillStyle = rgbStr(ageRGB((NOW - mid) / DAY), counts[i] ? (mid <= cut ? .95 : .22) : .12);
+    tctx.fillRect(i * bw + .5, base - h, Math.max(1, bw - 1.5), h);
+  }
+  // Year marks under the bars
+  tctx.font = '12px ' + UI; tctx.fillStyle = '#949498'; tctx.textBaseline = 'alphabetic';
+  const y0 = new Date(tMin).getFullYear(), y1 = new Date(NOW).getFullYear();
+  for (let y = y0 + 1; y <= y1; y++) { const x = (new Date(y, 0, 1).getTime() - tMin) / (NOW - tMin) * TW; if (x > 8 && x < TW - 40) { tctx.fillRect(x, base + 2, 1, 4); tctx.fillText(String(y), x + 4, TH - 2); } }
+  // Playhead
+  const px = tv / 1000 * TW;
+  tctx.fillStyle = '#fff'; tctx.fillRect(Math.min(TW - 2, Math.max(0, px - 1)), top - 2, 2, base - top + 4);
+  tlLabel.style.left = clamp(px, 34, TW - 34) + 'px';
+}
+function setT(v) {
+  tv = clamp(v, 0, 1000);
+  timeT = tv >= 999.5 ? Infinity : tOf(tv);
+  const n = stars.filter(visibleT).length;
+  tlLabel.innerHTML = timeT === Infinity ? 'Today' : esc(fmtShort(timeT)) + ' <span>' + n + ' stars</span>';
+  tlWrap.setAttribute('aria-valuenow', String(Math.round(tv)));
+  tlWrap.setAttribute('aria-valuetext', timeT === Infinity ? 'Today' : fmtDay(timeT) + ', ' + n + ' stars');
+  drawTimeline(); updateScope();
+  if (sel && !visibleT(sel)) deselect();
+  wake();
+}
+let playing = false, playT0 = 0, playV0 = 0;
+function setPlayIcon() { $('playIcon').innerHTML = playing ? '<path d="M8 5h3v14H8zM13 5h3v14h-3z" fill="currentColor"/>' : '<path d="M8 5.5v13l11-6.5z" fill="currentColor"/>'; $('play').setAttribute('aria-label', playing ? 'Pause the replay' : 'Replay how your sky grew'); }
+function setTimeNow() { if (timeT !== Infinity || playing) { playing = false; setPlayIcon(); setT(1000); } }
+let tdrag = false;
+const tFromEvent = e => { const r = tlWrap.getBoundingClientRect(); return (e.clientX - r.left) / r.width * 1000; };
+tlWrap.addEventListener('pointerdown', e => { tdrag = true; tlWrap.setPointerCapture(e.pointerId); playing = false; setPlayIcon(); setT(tFromEvent(e)); });
+tlWrap.addEventListener('pointermove', e => { if (tdrag) setT(tFromEvent(e)); });
+tlWrap.addEventListener('pointerup', () => { tdrag = false; });
+tlWrap.addEventListener('pointercancel', () => { tdrag = false; });
+tlWrap.addEventListener('keydown', e => {
+  if (e.key === 'ArrowLeft') { setT(tv - 10); e.preventDefault(); }
+  else if (e.key === 'ArrowRight') { setT(tv + 10); e.preventDefault(); }
+  else if (e.key === 'Home') { setT(0); e.preventDefault(); }
+  else if (e.key === 'End') { setT(1000); e.preventDefault(); }
+});
+$('play').addEventListener('click', () => {
+  if (playing) { playing = false; setPlayIcon(); return; }
+  if (tv >= 999.5) setT(0);
+  playing = true; playT0 = performance.now(); playV0 = tv; setPlayIcon();
+  clearSearch(); deselect();
+  const v = fitView(true); flyTo({x:v.x, y:v.y, z:v.z * .95}, {slow:1.2});
+});
+
+/* ================= controls ================= */
+$('zin').addEventListener('click', () => zoomBy(1.8));
+$('zout').addEventListener('click', () => zoomBy(1 / 1.8));
+$('zfit').addEventListener('click', () => { if (sel) deselect(); flyTo(fitView()); });
+
+/* ================= pointer on the sky ================= */
+const ptrs = new Map(); let drag = null, pinch = null, lastTap = 0;
+const loc = e => ({x:e.clientX - WR.left, y:e.clientY - WR.top});
+canvas.addEventListener('pointerdown', e => {
+  canvas.setPointerCapture(e.pointerId);
+  const p = loc(e); ptrs.set(e.pointerId, p);
+  cancelFlight(); zoomA = null;
+  if (ptrs.size === 1) { drag = {x:p.x, y:p.y, t:performance.now(), moved:0, hist:[]}; vel.x = vel.y = 0; }
+  else if (ptrs.size === 2) { const v = Array.from(ptrs.values()); pinch = {d:Math.hypot(v[0].x - v[1].x, v[0].y - v[1].y), mx:null, my:null}; drag = null; }
+  wake();
+});
+canvas.addEventListener('pointermove', e => {
+  const p = ptrs.get(e.pointerId), l = loc(e);
+  if (!p) {
+    if (e.pointerType === 'mouse') { const s = pick(l.x, l.y); if (s !== hover) { hover = s; canvas.style.cursor = s ? 'pointer' : 'grab'; wake(); } }
+    return;
+  }
+  p.x = l.x; p.y = l.y;
+  if (ptrs.size === 2 && pinch) {
+    const v = Array.from(ptrs.values());
+    const d = Math.hypot(v[0].x - v[1].x, v[0].y - v[1].y), mx = (v[0].x + v[1].x) / 2, my = (v[0].y + v[1].y) / 2;
+    if (pinch.d > 0) {
+      const wx = (mx - W / 2) / cam.z + cam.x, wy = (my - Hh / 2) / cam.z + cam.y;
+      cam.z = clamp(cam.z * d / pinch.d, ZMIN, ZMAX);
+      cam.x = wx - (mx - W / 2) / cam.z; cam.y = wy - (my - Hh / 2) / cam.z;
+      if (pinch.mx != null) { cam.x -= (mx - pinch.mx) / cam.z; cam.y -= (my - pinch.my) / cam.z; }
+    }
+    pinch.d = d; pinch.mx = mx; pinch.my = my; wake();
+    return;
+  }
+  if (drag) {
+    const dx = l.x - drag.x, dy = l.y - drag.y;
+    drag.x = l.x; drag.y = l.y; drag.moved += Math.abs(dx) + Math.abs(dy);
+    cam.x -= dx / cam.z; cam.y -= dy / cam.z;
+    const now = performance.now(); drag.hist.push({t:now, dx, dy});
+    while (drag.hist.length && now - drag.hist[0].t > 90) drag.hist.shift();
+    if (drag.moved > 6) canvas.style.cursor = 'grabbing';
+    wake();
+  }
+});
+function endPtr(e) {
+  if (!ptrs.has(e.pointerId)) return;
+  ptrs.delete(e.pointerId);
+  if (pinch) {
+    if (ptrs.size < 2) pinch = null;
+    if (ptrs.size === 1) { const p = Array.from(ptrs.values())[0]; drag = {x:p.x, y:p.y, t:performance.now(), moved:99, hist:[]}; }
+    return;
+  }
+  if (!drag) return;
+  const now = performance.now(), l = loc(e);
+  if (drag.moved < 7 && now - drag.t < 400) onTap(l.x, l.y, now);
+  else if (!RM && drag.hist.length > 1) {
+    let sx = 0, sy = 0; for (const h of drag.hist) { sx += h.dx; sy += h.dy; }
+    const st = Math.max(16, now - drag.hist[0].t); vel.x = sx / st * 16; vel.y = sy / st * 16;
+  }
+  drag = null; canvas.style.cursor = hover ? 'pointer' : 'grab';
+  wake();
+}
+canvas.addEventListener('pointerup', endPtr);
+canvas.addEventListener('pointercancel', endPtr);
+canvas.addEventListener('pointerleave', () => { if (!drag && hover) { hover = null; wake(); } });
+canvas.addEventListener('wheel', e => { e.preventDefault(); const l = loc(e); zoomBy(Math.exp(-e.deltaY * (e.ctrlKey ? .01 : .0016)), l.x, l.y); }, {passive:false});
+function onTap(x, y, now) {
+  const s = pick(x, y);
+  if (s) { lastTap = 0; select(s); return; }
+  if (now - lastTap < 320) { zoomBy(2.2, x, y); lastTap = 0; return; }
+  lastTap = now;
+  if (sel) deselect(); else if (search) clearSearch();
+  if (isNarrow() && sheet.panel.state !== 'closed') sheet.panel.close();
+}
+window.addEventListener('keydown', e => {
+  const inField = e.target.closest && e.target.closest('input,textarea,[role="slider"]');
+  if (e.key === 'Escape') { if (sel) deselect(); else if (search) clearSearch(); else if (inField) e.target.blur(); return; }
+  if (inField) return;
+  if (e.key === '/') { e.preventDefault(); q.focus(); }
+  else if (e.key === '+' || e.key === '=') zoomBy(1.6);
+  else if (e.key === '-' || e.key === '_') zoomBy(1 / 1.6);
+  else if (e.key === '0') flyTo(fitView());
+  else if (e.key.indexOf('Arrow') === 0) { const k = 60 / cam.z; if (e.key === 'ArrowLeft') cam.x -= k; if (e.key === 'ArrowRight') cam.x += k; if (e.key === 'ArrowUp') cam.y -= k; if (e.key === 'ArrowDown') cam.y += k; wake(); }
+});
+
+/* ================= drawing ================= */
+function draw(now) {
+  const t = now / 1000, z = cam.z, cx = W / 2, cy = Hh / 2;
+  ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = 1;
+  ctx.fillStyle = '#000'; ctx.fillRect(0, 0, W, Hh);
+  const introA = introOn ? clamp((now - introT0) / 1400, 0, 1) : 1;
+  ctx.globalCompositeOperation = 'lighter';
+  // distant field (parallax)
+  const pz = .7 + .3 * Math.log2(1 + z);
+  for (const L of dust) {
+    const ox = -cam.x * L.f * pz, oy = -cam.y * L.f * pz;
+    for (const b of L.buckets) {
+      ctx.fillStyle = b.style;
+      for (const p of b.pts) {
+        let x = (p.x + ox) % TILE; if (x < 0) x += TILE; if (x > W) continue;
+        let y = (p.y + oy) % TILE; if (y < 0) y += TILE; if (y > Hh) continue;
+        ctx.fillRect(x, y, L.size, L.size);
+      }
+    }
+  }
+  // Milky Way
+  const bandF = clamp(1.4 - z / 8, .3, 1) * (.4 + .6 * introA);
+  for (const b of bandBlobs) {
+    const r = b.r * z, sx = (b.x - cam.x) * z + cx, sy = (b.y - cam.y) * z + cy;
+    if (sx + r < 0 || sx - r > W || sy + r < 0 || sy - r > Hh) continue;
+    ctx.globalAlpha = b.a * bandF; ctx.drawImage(BAND_GLOW, sx - r, sy - r, r * 2, r * 2);
+  }
+  ctx.globalCompositeOperation = 'source-over';
+  for (const b of lanes) {
+    const r = b.r * z, sx = (b.x - cam.x) * z + cx, sy = (b.y - cam.y) * z + cy;
+    if (sx + r < 0 || sx - r > W || sy + r < 0 || sy - r > Hh) continue;
+    ctx.globalAlpha = b.a * .6 * bandF; ctx.drawImage(LANE, sx - r, sy - r, r * 2, r * 2);
+  }
+  ctx.globalCompositeOperation = 'lighter';
+  for (let k = 0; k < 2; k++) {
+    ctx.globalAlpha = 1; ctx.fillStyle = k ? 'rgba(255,244,226,.36)' : 'rgba(236,230,220,.18)';
+    for (const p of bandDust) {
+      if (p.b !== k) continue;
+      const sx = (p.x - cam.x) * z + cx, sy = (p.y - cam.y) * z + cy;
+      if (sx < 0 || sx > W || sy < 0 || sy > Hh) continue;
+      ctx.fillRect(sx, sy, p.s, p.s);
+    }
+  }
+  // a faint glow where a constellation is dense: it is the data, not decoration
+  for (const h of HUBS) {
+    const n = h.stars.reduce((c, s) => c + (visibleT(s) ? 1 : 0), 0); if (!n) continue;
+    const r = h.s * 1.5 * z, sx = (h.x - cam.x) * z + cx, sy = (h.y - cam.y) * z + cy;
+    if (sx + r < 0 || sx - r > W || sy + r < 0 || sy - r > Hh) continue;
+    ctx.globalAlpha = (.03 + .02 * Math.sqrt(n / 24)) * clamp(1.4 - z / 6, .25, 1) * introA; ctx.drawImage(HUB_GLOW, sx - r, sy - r, r * 2, r * 2);
+  }
+  ctx.globalAlpha = 1;
+
+  /* star states */
+  const zr = Math.pow(z, .42), span = (NOW - tMin) * .012;
+  for (const s of stars) {
+    s._on = false;
+    if (!visibleT(s)) continue;
+    const sx = (s.x - cam.x) * z + cx, sy = (s.y - cam.y) * z + cy;
+    let r = clamp(s.base * zr, .9, 26), a = .52 + s.imp * .55;
+    if (timeT !== Infinity) { const ap = clamp((timeT - s.t) / span, 0, 1); a *= ap; r *= 1 + 1.3 * (1 - ap); }
+    if (s.bornT) { const qb = (now - s.bornT) / 1100; if (qb < 1) { r *= 1 + 1.8 * (1 - easeOut(qb)); a = Math.min(1.3, a + .6 * (1 - qb)); } else s.bornT = 0; }
+    if (introOn) { const ia = clamp((now - introT0 - s.dc * .9) / 1000, 0, 1); a *= .3 + .7 * ia; }
+    if (!RM) {
+      a *= .88 + .12 * Math.sin(t * s.sp + s.ph);
+      if (t > s.gl) { const gg = (t - s.gl) / .8; if (gg < 1) a *= 1 + .5 * Math.sin(Math.PI * gg); else s.gl = t + 25 + Math.random() * 80; }
+    }
+    if (s.replacedBy) { a *= .42; r *= .85; }
+    if (sel && s !== sel && !selNear.has(s.id)) a *= lerp(1, .26, focusMix);
+    if (search) {
+      if (search.set.has(s.id)) { a = Math.min(1.3, a * (1 + .4 * searchMix)); r *= 1 + .25 * searchMix; }
+      else { const rp = clamp((now - search.t0 - (search.d.get(s.id) || 0) * .5) / 450, 0, 1); a *= lerp(1, .2, rp * searchMix); }
+    }
+    if (s === sel) r *= 1.35;
+    if (s === hover) { r *= 1.15; a = Math.min(1.3, a * 1.25); }
+    const g = r * 9;
+    if (sx + g < 0 || sx - g > W || sy + g < 0 || sy - g > Hh) continue;
+    s._sx = sx; s._sy = sy; s._r = r; s._a = a; s._on = a > .04;
+  }
+
+  /* constellation lines */
+  const eA = smooth(.7, 1.5, z) * (1 - smooth(10, 18, z)) * .16 * (sel ? lerp(1, .4, focusMix) : 1) * (search ? lerp(1, .3, searchMix) : 1) * introA;
+  if (eA > .005) {
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.lineWidth = .8; ctx.strokeStyle = 'rgba(255,255,255,' + eA + ')';
+    ctx.beginPath();
+    for (const h of HUBS) for (const e of h.edges) {
+      const A = e[0], B = e[1];
+      if (!visibleT(A) || !visibleT(B)) continue;
+      const ax = (A.x - cam.x) * z + cx, ay = (A.y - cam.y) * z + cy, bx = (B.x - cam.x) * z + cx, by = (B.y - cam.y) * z + cy;
+      if ((ax < 0 && bx < 0) || (ax > W && bx > W) || (ay < 0 && by < 0) || (ay > Hh && by > Hh)) continue;
+      ctx.moveTo(ax, ay); ctx.lineTo(bx, by);
+    }
+    ctx.stroke();
+  }
+  /* history: a fact and what replaced it */
+  const hA = smooth(1.2, 2.6, z) * .45;
+  if (hA > .01) {
+    ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255,224,170,' + hA + ')'; ctx.beginPath();
+    for (const s of stars) if (s.replacedBy && byId[s.replacedBy] && visibleT(s) && visibleT(byId[s.replacedBy])) { const r2 = byId[s.replacedBy]; ctx.moveTo((s.x - cam.x) * z + cx, (s.y - cam.y) * z + cy); ctx.lineTo((r2.x - cam.x) * z + cx, (r2.y - cam.y) * z + cy); }
+    ctx.stroke();
+  }
+  /* focus links to neighbours */
+  if (sel && focusMix > .02) {
+    const p = easeOut(clamp((now - selT0) / 700, 0, 1));
+    const sx = (sel.x - cam.x) * z + cx, sy = (sel.y - cam.y) * z + cy;
+    ctx.lineWidth = 1;
+    selNear.forEach(id => {
+      const o = byId[id]; if (!o || !visibleT(o)) return;
+      const ox = (o.x - cam.x) * z + cx, oy = (o.y - cam.y) * z + cy;
+      if (cardOpen && !isNarrow() && ox > clipR) return;
+      const hist = (sel.earlier && sel.earlier.indexOf(id) >= 0) || sel.replacedBy === id;
+      ctx.strokeStyle = hist ? 'rgba(255,224,170,' + (.6 * focusMix) + ')' : 'rgba(255,255,255,' + (.22 * focusMix) + ')';
+      ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(lerp(sx, ox, p), lerp(sy, oy, p)); ctx.stroke();
+    });
+  }
+
+  /* stars */
+  ctx.globalCompositeOperation = 'lighter';
+  for (const s of stars) {
+    if (!s._on) continue;
+    const g = s._r * 9, aa = Math.min(1, s._a), spr = GLOW[s.bin];
+    ctx.globalAlpha = aa; ctx.drawImage(spr, s._sx - g / 2, s._sy - g / 2, g, g);
+    if (s._a > 1) { ctx.globalAlpha = s._a - 1; ctx.drawImage(spr, s._sx - g / 2, s._sy - g / 2, g, g); }
+    if ((s.imp > .84 || s === sel || (search && search.top === s)) && z > .5) {
+      const k = s._r * (s === sel ? 20 : 14);
+      ctx.globalAlpha = aa * (s === sel ? .42 : .2); ctx.drawImage(SPIKE, s._sx - k / 2, s._sy - k / 2, k, k);
+    }
+    if (z > 2.5) { ctx.globalAlpha = aa * smooth(2.5, 5, z); ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(s._sx, s._sy, Math.max(.6, s._r * .3), 0, 6.283); ctx.fill(); }
+  }
+
+  /* selection ring + the pulse on the best match */
+  ctx.globalCompositeOperation = 'source-over';
+  if (sel && sel._on) {
+    const grow = easeOut(clamp((now - selT0) / 520, 0, 1));
+    const rr = (sel._r * 2.1 + 11) * (1.6 - .6 * grow);
+    ctx.globalAlpha = .9 * focusMix * grow; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.25;
+    ctx.beginPath(); ctx.arc(sel._sx, sel._sy, rr, 0, 6.283); ctx.stroke();
+  }
+  if (search && search.top && search.top !== sel && search.top._on && !RM && now - search.t0 < 6000) {
+    const qq = ((now - search.t0) / 1800) % 1;
+    ctx.globalAlpha = (1 - qq) * .6 * searchMix; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.1;
+    ctx.beginPath(); ctx.arc(search.top._sx, search.top._sy, search.top._r * 2 + 6 + qq * 26, 0, 6.283); ctx.stroke();
+  }
+  if (hover && hover !== sel && hover._on) { ctx.globalAlpha = .45; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1; ctx.beginPath(); ctx.arc(hover._sx, hover._sy, hover._r * 2 + 7, 0, 6.283); ctx.stroke(); }
+  for (let i = flares.length - 1; i >= 0; i--) {
+    const f = flares[i], qf = (now - f.t0) / 1200;
+    if (qf >= 1) { flares.splice(i, 1); continue; }
+    const p = w2s(f.s);
+    ctx.globalCompositeOperation = 'lighter'; ctx.globalAlpha = 1 - qf;
+    const G = 30 + 90 * (1 - qf); ctx.drawImage(GLOW[0], p.x - G / 2, p.y - G / 2, G, G);
+    ctx.globalCompositeOperation = 'source-over'; ctx.globalAlpha = (1 - qf) * .7; ctx.strokeStyle = '#fff'; ctx.lineWidth = 1.2;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 6 + 60 * easeOut(qf), 0, 6.283); ctx.stroke();
+  }
+  if (comet && now >= comet.t0) {
+    const c = comet, s = c.s, p = clamp((now - c.t0) / c.dur, 0, 1), e = easeIO(p), tp = w2s(s);
+    const mx = lerp(c.fx, tp.x, e), my = lerp(c.fy, tp.y, e);
+    const nx = -(tp.y - c.fy), ny = tp.x - c.fx, nl = Math.hypot(nx, ny) || 1, arc = Math.sin(Math.PI * e) * 70;
+    const px = mx + nx / nl * arc, py = my + ny / nl * arc;
+    c.trail.push({x:px, y:py}); if (c.trail.length > 22) c.trail.shift();
+    ctx.globalCompositeOperation = 'lighter';
+    for (let i = 1; i < c.trail.length; i++) { const A = c.trail[i - 1], B = c.trail[i], k = i / c.trail.length; ctx.globalAlpha = k * .7; ctx.strokeStyle = 'rgb(200,216,255)'; ctx.lineWidth = 1 + 2 * k; ctx.beginPath(); ctx.moveTo(A.x, A.y); ctx.lineTo(B.x, B.y); ctx.stroke(); }
+    ctx.globalAlpha = 1; ctx.drawImage(GLOW[0], px - 16, py - 16, 32, 32);
+    ctx.globalCompositeOperation = 'source-over';
+    if (p >= 1) { s.unborn = false; s.bornT = now; flares.push({s, t0:now}); haptic('impact'); comet = null; landed(s); }
+  }
+
+  /* labels: constellation names far out, star titles close in */
+  const placed = reserved.map(b => Object.assign({}, b));
+  const fits = (x, y, w, h) => { for (const b of placed) if (x < b.x + b.w && x + w > b.x && y < b.y + b.h && y + h > b.y) return false; placed.push({x, y, w, h}); return true; };
+  ctx.shadowColor = 'rgba(0,0,0,.95)'; ctx.shadowBlur = 8;
+  const hubA = (1 - smooth(2.0, 3.8, z)) * (introOn ? clamp((now - introT0 - 300) / 900, 0, 1) : 1) * (sel ? lerp(1, .3, focusMix) : 1) * (search ? lerp(1, .45, searchMix) : 1);
+  if (hubA > .01) {
+    const fs = Math.round(lerp(W < 600 ? 16 : 18, W < 600 ? 14 : 15, smooth(.4, 2.2, z)));
+    ctx.textAlign = 'left';
+    const order = HUBS.map(h => [h, h.stars.reduce((c, s) => c + (visibleT(s) ? 1 : 0), 0)]).sort((a, b) => b[1] - a[1]);
+    for (const [h, n] of order) {
+      if (!n) continue;
+      const x = (h.x - cam.x) * z + cx, y = (h.y - cam.y) * z + cy - h.s * .95 * z - 12;
+      if (x < 0 || x > W || y < 20 || y > Hh + 20) continue;
+      ctx.font = '500 ' + fs + 'px ' + DISPLAY;
+      const w1 = ctx.measureText(h.name).width;
+      ctx.font = '400 13px ' + UI;
+      const cnt = String(n), w2 = ctx.measureText(cnt).width;
+      const x0 = clamp(x - (w1 + 7 + w2) / 2, 12, W - (w1 + 7 + w2) - 12);
+      if (!fits(x0 - 4, y - fs, w1 + 7 + w2 + 8, fs + 8)) continue;
+      ctx.font = '500 ' + fs + 'px ' + DISPLAY; ctx.globalAlpha = hubA * .92; ctx.fillStyle = '#f2f2f3';
+      ctx.fillText(h.name, x0, y);
+      ctx.font = '400 13px ' + UI; ctx.globalAlpha = hubA * .7; ctx.fillStyle = '#b4b4b8';
+      ctx.fillText(cnt, x0 + w1 + 7, y);
+    }
+  }
+  const lz = smooth(2.2, 3.4, z), cand = [];
+  for (const s of stars) {
+    if (!s._on) continue;
+    let pr = -1;
+    if (s === sel) pr = 100; else if (s === hover) pr = 90;
+    else if (s.created && now - s.created < 7000) pr = 80;
+    else if (search && search.set.has(s.id)) pr = 60 + s.imp;
+    else if (lz > .01) pr = s.imp * 10;
+    if (pr >= 0) cand.push([pr, s]);
+  }
+  cand.sort((a, b) => b[0] - a[0]);
+  let count = 0; const budget = W < 600 ? 28 : 70;
+  for (const c of cand) {
+    if (count > budget) break;
+    const pr = c[0], s = c[1], strong = pr >= 60, la = strong ? 1 : lz;
+    if (la < .02) continue;
+    ctx.font = '500 13px ' + UI;
+    const text = s.title.length > 44 ? s.title.slice(0, 42) + '…' : s.title;
+    const w = ctx.measureText(text).width, off = (s === sel ? s._r * 2.1 + 11 : s._r * 1.6) + 9;
+    const limR = cardOpen && !isNarrow() ? clipR : W - 10;
+    let x = s._sx + off, y = s._sy + 4;
+    if (x + w > limR) x = s._sx - off - w;
+    if (x < 10) { x = clamp(s._sx - w / 2, 10, limR - w); y = s._sy + off + 18; }
+    const sub = z > 8 || strong, hh = sub ? 32 : 17;
+    if (x + w > limR + 2 || !fits(x - 2, y - 13, w + 6, hh)) continue;
+    ctx.globalAlpha = s === sel ? 1 : clamp(Math.min(1, s._a * 1.25) * la, 0, .95);
+    ctx.fillStyle = s.replacedBy ? '#9a9a9e' : '#f2f2f3';
+    ctx.fillText(text, x, y);
+    if (sub) { ctx.font = '400 12px ' + UI; ctx.globalAlpha *= .8; ctx.fillStyle = '#b4b4b8'; ctx.fillText(fmtShort(s.t) + ', ' + SRC_SHORT[s.src], x, y + 16); }
+    count++;
+  }
+  ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+}
+
+/* ================= the loop: draw only when something changes ================= */
+let bootT = performance.now(), loopOn = false, lastDraw = 0, lastActive = 0, idleTimer = 0;
+function busy(now) {
+  return !!(flight || zoomA || drag || pinch || comet || flares.length || playing || introOn ||
+    Math.abs(vel.x) > .02 || Math.abs(vel.y) > .02 ||
+    Math.abs(focusMix - (sel ? 1 : 0)) > .003 || Math.abs(searchMix - (search ? 1 : 0)) > .003 ||
+    (sel && now - selT0 < 800) || (search && !RM && now - search.t0 < 6000) || (hover && now - lastActive < 300));
+}
+function frame(now) {
+  loopOn = false;
+  if (document.hidden) return;
+  if (playing) { const v = playV0 + (now - playT0) / 14000 * 1000; setT(Math.min(1000, v)); if (v >= 1000) { playing = false; setPlayIcon(); } }
+  if (flight) stepFlight(now);
+  else if (zoomA) stepZoom();
+  else if (!drag && !pinch && (Math.abs(vel.x) > .02 || Math.abs(vel.y) > .02)) { cam.x -= vel.x / cam.z; cam.y -= vel.y / cam.z; vel.x *= .93; vel.y *= .93; }
+  focusMix = lerp(focusMix, sel ? 1 : 0, RM ? 1 : .12);
+  searchMix = lerp(searchMix, search ? 1 : 0, RM ? 1 : .1);
+  if (introOn && now - introT0 > 3200) introOn = false;
+  draw(now); lastDraw = now;
+  if (busy(now)) { lastActive = now; schedule(); return; }
+  // Idle: keep a slow twinkle (24 fps, 12 fps after 20 s), none with reduced motion.
+  if (RM) return;
+  clearTimeout(idleTimer);
+  idleTimer = setTimeout(schedule, now - lastActive > 20000 ? 83 : 41);
+}
+function schedule() { if (!loopOn) { loopOn = true; requestAnimationFrame(frame); } }
+function wake() { lastActive = performance.now(); clearTimeout(idleTimer); schedule(); }
+document.addEventListener('visibilitychange', () => { if (!document.hidden) wake(); });
+
+function boot() {
+  resize();
+  renderRecent(); renderLately(); updateScope(); setT(1000);
+  const v = fitView();
+  if (RM) { cam.x = v.x; cam.y = v.y; cam.z = v.z; }
+  else { cam.x = v.x + 60; cam.y = v.y + 30; cam.z = v.z * .78; flyTo(v, {slow:1.6}); }
+  introT0 = performance.now(); bootT = introT0;
+  wake();
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => { drawTimeline(); wake(); });
+}
+let rT = 0;
+window.addEventListener('resize', () => {
+  clearTimeout(rT);
+  rT = setTimeout(() => {
+    const narrow = isNarrow();
+    if (!narrow) { sheet.panel.reset(); if (cardOpen) { card.style.transform = ''; } }
+    else if (cardOpen && sheet.card.state === 'closed') sheet.card.open('peek');
+    resize(); if (!sel) flyTo(fitView());
+  }, 120);
+});
+boot();
+})();
+</script>
+
+</body>
+</html>
