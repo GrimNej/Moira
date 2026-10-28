@@ -1,0 +1,153 @@
+/* Base styles and the frame + sky window layout (blueprint §4.3.3). */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  background: var(--ground);
+  color: var(--text);
+  font: 400 15px/1.45 var(--face-ui);
+  -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+#app {
+  height: 100%;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  transition: transform var(--press) ease-out;
+}
+
+button:active {
+  transform: scale(0.97);
+}
+
+:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+.skip {
+  position: absolute;
+  left: var(--s-12);
+  top: -100px;
+  z-index: 50;
+  padding: var(--s-8) var(--s-14);
+  border-radius: var(--r-round);
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.skip:focus {
+  top: calc(var(--safe-top) + var(--s-12));
+}
+
+/* Frame: the column on the left, the sky window cut into the rest. */
+.frame {
+  display: grid;
+  grid-template-columns: calc(var(--column-w) + var(--safe-left)) 1fr;
+  height: 100%;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  padding: calc(var(--s-22) + var(--safe-top)) var(--s-22) calc(var(--s-14) + var(--safe-bottom))
+    calc(var(--s-22) + var(--safe-left));
+}
+
+.wordmark {
+  margin: 0;
+  font: 500 21px/1.1 var(--face-display);
+  letter-spacing: -0.01em;
+}
+
+.scope {
+  margin: var(--s-6) 0 0;
+  color: var(--faint);
+  font-size: 13px;
+}
+
+.window {
+  position: relative;
+  margin: var(--window-inset) calc(var(--window-inset) + var(--safe-right))
+    calc(var(--window-inset) + var(--safe-bottom)) 0;
+  border-radius: var(--r-window);
+  background: var(--sky);
+  overflow: hidden;
+}
+
+.sky-canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+  touch-action: none;
+}
+
+/* Phone and tablet: the sky is full-bleed; the column becomes a top bar. */
+@media (max-width: 899.98px) {
+  .frame {
+    display: block;
+    position: relative;
+  }
+
+  .window {
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    border-radius: 0;
+  }
+
+  .column {
+    position: absolute;
+    inset: 0 0 auto;
+    z-index: 2;
+    padding: calc(var(--s-14) + var(--safe-top)) var(--s-18) var(--s-22);
+    background: linear-gradient(var(--scrim), transparent);
+    pointer-events: none;
+  }
+
+  .column > * {
+    pointer-events: auto;
+  }
+
+  .wordmark {
+    font-size: 20px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button {
+    transition: none;
+  }
+
+  button:active {
+    transform: none;
+  }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  .column {
+    background: var(--sky);
+  }
+}
