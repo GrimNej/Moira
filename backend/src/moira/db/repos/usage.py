@@ -78,7 +78,7 @@ def count_on_day(conn: sqlite3.Connection, day_utc: str, column: str) -> int:
     if column not in ("web_searches", "audio_seconds"):
         raise ValueError(column)
     row = conn.execute(
-        f"SELECT COALESCE(SUM({column}), 0) FROM usage_ledger WHERE day_utc = ?",  # noqa: S608
+        f"SELECT COALESCE(SUM({column}), 0) FROM usage_ledger WHERE day_utc = ?",
         (day_utc,),
     ).fetchone()
     return int(row[0])
