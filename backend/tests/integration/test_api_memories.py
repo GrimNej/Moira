@@ -44,7 +44,7 @@ async def test_sky_payload_is_columnar(app: Services, world: World, seeded: dict
     body = r.json()
     assert body["v"] == 1 and body["cursor"].isdigit()
     stars = body["stars"]
-    assert set(stars) == {"id", "x", "y", "kind", "hub", "t", "imp", "flags"}
+    assert set(stars) == {"id", "x", "y", "kind", "hub", "t", "imp", "flags", "title", "source"}
     assert len({len(v) for v in stars.values()}) == 1 and len(stars["id"]) == 4
     apple = stars["id"].index(seeded["apple"])
     assert stars["flags"][apple] & 1  # earlier
