@@ -152,8 +152,11 @@ def fake_enrich(text: str, images: int) -> EnrichOutput:
                     evidence=fav.group(0).rstrip(".!"),
                 )
             )
-        elif CHANGE_CUES.search(words):
-            current = [m for m, r in hub["members"] if r == "current"]
+        elif CHANGE_CUES.search(words) or "corrected version" in block(text, "note"):
+            me = re.search(r'<nugget id="([^"]+)"', text)
+            current = [
+                m for m, r in hub["members"] if r == "current" and (not me or m != me.group(1))
+            ]
             actions.append(
                 action(
                     hub_id=hub["id"],
