@@ -44,6 +44,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - Nightly work and digest: ai/tidy.py (model proposes; code applies merges at confidence ≥ 0.85, same kind, name similarity ≥ 0.6 or cosine ≥ 0.85; renames at ≥ 0.9; at most 5; undoable), nightly job (importance, tidy, index consistency, secret audit count), digest at 08:00 NPT with spend, cache ratio, research, dead jobs, tidy undo links, last backup, disk, RSS; sandbox_gc and tmp_sweep; in-process timers; owner alerts throttled to one per type per hour, wired to budget cap hits
 - Backups, restore and export: moira.backup.backup (online snapshot, integrity_check, tar | zstd -19 | age, rclone daily/weekly with 14/8 retention, last.json + meta, Telegram alert on failure), backup.sh, restore.sh, restore_drill.sh, RESTORE.md; GET /api/export (JSONL + Markdown + SQLite, refused for sandboxes, deleted after sending); /export and the Sunday export_weekly send incremental zips; forget everything with a 24 h grace and cancel. The timed restore drill needs the server (developer)
 - Security pass: the §10.1 table checked row by row in SECURITY.md with the code and tests behind each row. Fixes: ffmpeg now reads only local files with the demuxer pinned to the sniffed type (a playlist disguised as Ogg is not followed); saved links in the card become links only for http(s). Live server checks and the restore drill wait for the server
+- Short videos: media/video.py (MP4 by magic bytes and ffprobe, ≤ 90 s, size caps, ffprobe pinned to local files), ai/video.py (line format → masked found content), read_video job (content_text + a research row; remote file deleted even on failure; local file always deleted). Offline tests read a real 10 s MP4 with FakeLLM; the live call waits for the API key
 
 **Decisions**
 
@@ -57,5 +58,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T52
+**Next** T53
 **Built with** Claude Code (T01–T35–T43 from Appendix M); reviewed by the developer.
