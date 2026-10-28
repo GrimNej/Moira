@@ -24,6 +24,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - T17 sign-in: one-time login links in the URL fragment (10 minutes, once), Mini App initData validated with aiogram and rejected after 24 h, hashed sessions as an HttpOnly cookie or a bearer token, the X-Moira CSRF header, per-route rate limits with Retry-After, /api/me, /web. The lifespan now builds the services and starts the worker and the bot.
 - T18 bot commands: /start (owner on first start, tester and judge invites stored hashed, judges expire), /help, /web, /timezone, /forget (last or replied; 10-minute Undo button; deletes the Telegram message within 48 h; hard delete job), /undo (reverts the last AI event group), /stats (owner), /export (link until T50), /ask. Undo replays recorded event states; forget repairs fact hubs.
 - T19 AI client: Responses calls through the openai SDK with store=False on every request, strict structured output (Chat Completions behind STRUCTURED_TRANSPORT), web search, Files API video, multipart ASR; pre-flight budget caps; circuit breaker (5 failures in 2 min → open 120 s → half-open probe); one repair attempt; a ledger row per call; prompts 1.0.0 from §9.8 with front matter; FakeLLM for tests.
+- T20 embeddings: model2vec (256 dims, int8) behind an Embedder protocol, a deterministic hash embedder for tests, sqlite-vec KNN with a numpy fallback; KNN returns the item itself first in both. RSS: +70 MB for the model (Windows dev machine; see EXTERNAL_API_NOTES #2).
 
 **Decisions**
 
@@ -37,5 +38,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T20
-**Built with** Claude Code (T01–T19 from Appendix M); reviewed by the developer.
+**Next** T21
+**Built with** Claude Code (T01–T20 from Appendix M); reviewed by the developer.
