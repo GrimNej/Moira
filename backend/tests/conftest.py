@@ -104,10 +104,16 @@ def services(world: World):  # type: ignore[no-untyped-def]
 @pytest.fixture
 def app(services):  # type: ignore[no-untyped-def]
     """Services wired with FakeLLM, the bus and every job handler."""
+    from unittest.mock import AsyncMock
+
     from moira.ai.fake import FakeLLM
     from moira.app_services import wire
+    from moira.readers.base import ReaderResult
 
-    return wire(services, FakeLLM())
+    wired = wire(services, FakeLLM())
+    # No network in tests: links read as blocked unless a test sets its own reader.
+    wired.extras["read_link"] = AsyncMock(return_value=ReaderResult("page_fetch", "blocked"))
+    return wired
 
 
 async def run_jobs(app, minutes: int = 4) -> int:  # type: ignore[no-untyped-def]
