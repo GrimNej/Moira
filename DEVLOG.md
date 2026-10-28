@@ -15,6 +15,8 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - T05 quality gates: Makefile (Appendix N.3), pre-commit (ruff, mypy, prettier, eslint, gitleaks, conventional commits, large files, private keys), CI with backend, web, e2e, security and docs jobs, PR and issue templates, Dependabot. A commit message without a type is rejected locally (checked). Hypothesis found a float rounding bug in `clock.to_ms`; fixed with integer maths.
 - T06 server and deploy files: Caddyfile and `moira.service` from §13.13, backup and DuckDNS units, idempotent `bootstrap_server.sh` and `firewall.sh`, `deploy.sh` (refuses a dirty tree or red CI, builds the web locally, release folders, migrations, symlink switch, smoke test with rollback, keeps 3 releases), DEPLOY.md. **Blocked:** the server does not exist yet, so the live deploy and the rollback test wait for the owner (D0 step 2).
 - T07 API verification: `scripts/verify_api.py` with the checks `structured`, `image`, `search`, `asr`, `video`, `effort`, `tokens`. **Blocked:** no `MODEL_API_KEY` yet, so no Meta check has run; the local checks J13 (sqlite-vec, trigram) and J14 (model2vec 256 int8, +70 MB) pass and are recorded.
+- T08–T09 database core and memory database: pragmas, sqlite-vec (numpy fallback when extensions cannot load), forward-only migrations with snapshots, repositories for system.db and the memory database, new memories with the 10 shelves on the ring. Q-007: the job claim keeps strict capture order.
+- T10–T12 parsers, test first: secret masking S1–S8 (every Appendix E.1 example plus 35 more; property tests that no detected secret survives), URL canonicalization (33 cases, idempotence property), exact strings, and the Appendix F time grammar (every row of the test table at Mon 26 Oct 2026 21:00 NPT).
 
 **Decisions**
 
@@ -28,5 +30,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T08
-**Built with** Claude Code (T01–T07 from Appendix M); reviewed by the developer.
+**Next** T13
+**Built with** Claude Code (T01–T12 from Appendix M); reviewed by the developer.
