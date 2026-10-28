@@ -14,6 +14,17 @@ from moira.errors import ValidationFailed
 from moira.media.sniff import AUDIO_TYPES, sniff
 
 SEGMENT_S = 570  # the API limit is 10 minutes per request
+# The demuxer is pinned to the sniffed type (format allowlist, §10.1), and ffmpeg may open only
+# local files, so a crafted file cannot make it read a playlist, a URL or another file.
+DEMUXER = {
+    "audio/ogg": "ogg",
+    "audio/webm": "matroska",
+    "audio/mp4": "mov",
+    "video/mp4": "mov",
+    "audio/wav": "wav",
+    "audio/mpeg": "mp3",
+}
+SAFE_INPUT = ["-protocol_whitelist", "file"]
 
 
 def _ffmpeg() -> list[str]:
@@ -40,6 +51,9 @@ def to_wav(src: Path) -> list[Path]:
         subprocess.run(  # noqa: S603  # argument list, no shell, fixed executable
             [
                 *_ffmpeg(),
+                *SAFE_INPUT,
+                "-f",
+                DEMUXER[kind],
                 "-i",
                 str(src),
                 "-ac",
@@ -68,6 +82,9 @@ def to_wav(src: Path) -> list[Path]:
         subprocess.run(  # noqa: S603
             [
                 *_ffmpeg(),
+                *SAFE_INPUT,
+                "-f",
+                "wav",
                 "-i",
                 str(out),
                 "-f",

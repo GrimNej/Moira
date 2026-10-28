@@ -1329,3 +1329,9 @@ body.card-open .timeline {
   color: var(--text);
   font-size: 14px;
 }
+.bubble a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  overflow-wrap: anywhere;
+}
