@@ -17,6 +17,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - T07 API verification: `scripts/verify_api.py` with the checks `structured`, `image`, `search`, `asr`, `video`, `effort`, `tokens`. **Blocked:** no `MODEL_API_KEY` yet, so no Meta check has run; the local checks J13 (sqlite-vec, trigram) and J14 (model2vec 256 int8, +70 MB) pass and are recorded.
 - T08–T09 database core and memory database: pragmas, sqlite-vec (numpy fallback when extensions cannot load), forward-only migrations with snapshots, repositories for system.db and the memory database, new memories with the 10 shelves on the ring. Q-007: the job claim keeps strict capture order.
 - T10–T12 parsers, test first: secret masking S1–S8 (every Appendix E.1 example plus 35 more; property tests that no detected secret survives), URL canonicalization (33 cases, idempotence property), exact strings, and the Appendix F time grammar (every row of the test table at Mon 26 Oct 2026 21:00 NPT).
+- T13 job queue and worker: lanes (file FIFO per user, media one at a time), debounce with the 90 s cap, backoff with jitter and Retry-After, dead jobs, stuck-job requeue, budget and outage reschedules that do not use an attempt (§9.10).
 
 **Decisions**
 
@@ -30,5 +31,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T13
-**Built with** Claude Code (T01–T12 from Appendix M); reviewed by the developer.
+**Next** T14
+**Built with** Claude Code (T01–T13 from Appendix M); reviewed by the developer.

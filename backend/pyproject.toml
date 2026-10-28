@@ -70,7 +70,7 @@ ignore = ["S101", "RUF001", "RUF002", "RUF003"]
 "scripts/*" = ["T201", "S603", "S607"]
 # Repositories build only "?" placeholder lists; every value is a bound parameter.
 "src/moira/db/repos/*" = ["S608"]
-"tests/*" = ["S105", "S106"]
+"tests/*" = ["S105", "S106", "S311"]
 
 [tool.mypy]
 python_version = "3.12"
