@@ -228,6 +228,18 @@
         "title": "MoveIn",
         "type": "object"
       },
+      "SandboxOut": {
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/UserOut"
+          }
+        },
+        "required": [
+          "user"
+        ],
+        "title": "SandboxOut",
+        "type": "object"
+      },
       "SaveIn": {
         "properties": {
           "text": {
@@ -1274,6 +1286,24 @@
           }
         },
         "summary": "Recent"
+      }
+    },
+    "/api/sandbox": {
+      "post": {
+        "operationId": "sandbox_api_sandbox_post",
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SandboxOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Sandbox"
       }
     },
     "/api/search": {

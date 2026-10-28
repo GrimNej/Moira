@@ -40,6 +40,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - T34 sky, card and events API: columnar sky payload with flags and history threads (and ?since= deltas with removals), the card of §4.3.6 with dates computed in code, Recent with cursor paging and filters, save, edit, forget, move, unlink, restore, split, undo, hubs with history, instant search with clue labels, GET /api/events (≤ 5 streams, ping 25 s), owner-only /api/admin/stats; openapi.json and API.md updated.
 - Web app: API client and SSE, state, Canvas sky engine (stars, Milky Way, labels, picking, camera, timeline, comets), column and phone sheet, card, Ask thread, Recent, composer, Welcome, login, settings; label placement unit tests; Playwright e2e on phone and desktop against the sample sky (Q-011, Q-012)
 - Saving from the web: POST /api/nuggets/media (sniffed, EXIF-stripped, cleaned up on error), offline queue e2e, comet waits for the star (fixes a filed-before-response race). PWA: manifest with Android share_target, service worker (shell only, never /api), icons; POST /share with an Origin check (Q-013). Real-phone checks J16/J25 wait for the developer
+- Sandboxes and judges: POST /api/sandbox copies templates/demo.db with the SQLite backup API and rebases every time column by now − template_now − 2 h (coverage test over the schema); judges' invites seed the same copy; Kathmandu time; at most 200 active, oldest evicted; sandbox_gc deletes expired files and users; per-IP limit from SANDBOX_CREATE_PER_IP_HOUR
 
 **Decisions**
 
@@ -53,5 +54,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T46
+**Next** T48
 **Built with** Claude Code (T01–T35–T43 from Appendix M); reviewed by the developer.
