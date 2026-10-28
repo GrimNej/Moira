@@ -23,7 +23,7 @@ Every route except health, sign-in and the sandbox needs a session: the `moira_s
 | `POST /api/nuggets/{id}/opened` | user | 120/min | → `204` | Increments `open_count` |
 | `GET /api/recent?cursor=&kind=&source=&hub=` | user | 60/min | → `{items[50], next_cursor}` | §4.3.9 |
 | `POST /api/nuggets` | user | 30/min | `{text}` → `202 {id, status}` | Text/links capture |
-| `POST /api/nuggets/media` | user | 10/min | multipart `images[]` (≤ 10) or `audio` (≤ 3 min), optional `text` → `202 {id}` | Media sniffed by magic bytes |
+| `POST /api/nuggets/media` | user | 10/min | multipart `images[]` (≤ 10) or `audio` (≤ 3 min), optional `text` → `202 {id}` | Media sniffed by magic bytes; images stripped at once; audio capped at 6 MB (Q-013) |
 | `PATCH /api/nuggets/{id}` | user | 30/min | `{user_text}` → `{version}` | Edit (§7.10) |
 | `POST /api/nuggets/{id}/forget` | user | 30/min | → `{undo_group_id, undo_until}` | §7.11 |
 | `POST /api/nuggets/{id}/move` | user | 30/min | `{hub_id}` or `{new_hub_name}` → `{group_id}` | |
@@ -40,7 +40,7 @@ Every route except health, sign-in and the sandbox needs a session: the `moira_s
 | `POST /api/forget-everything` · `DELETE /api/forget-everything` | user | 2/hour | → `{scheduled_for}` / `204` | 24 h grace |
 | `GET /api/health` | none | 60/min IP | → `{ok, version}` (owner: more fields) | §13.11 |
 | `GET /api/admin/stats` | owner | 30/min | → metrics | §13.11 |
-| `POST /share` | user (cookie) | 10/min | form `title, text, url, files[]` → `303 /?saved=<id>` | Android share target |
+| `POST /share` | user (cookie) | 10/min | form `title, text, url, files[]` → `303 /?saved=<id>` | Android share target; checks `Origin` instead of `X-Moira` (Q-013) |
 
 ## Server-sent events
 

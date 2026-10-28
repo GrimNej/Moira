@@ -11,7 +11,7 @@ import { navigate, route } from './router';
 import { engine } from './sky/engine';
 import { booted, me } from './state/session';
 import { lit, loadSky, sky, why } from './state/sky';
-import { narrow, panelState, settingsOpen, tab } from './state/ui';
+import { narrow, panelState, settingsOpen, showToast, tab } from './state/ui';
 import { retryQueue } from './state/capture';
 
 function Main() {
@@ -24,6 +24,11 @@ function Main() {
           if (r.from === 'tg') why.value = '';
           engine()?.select(id);
         }, 900);
+      }
+      if (r.name === 'home' && r.saved) {
+        // Back from the Android share target (§4.3.12): the star arrives over the live stream.
+        showToast('Saved');
+        history.replaceState(null, '', '/');
       }
       if (r.name === 'recent') {
         tab.value = 'recent';

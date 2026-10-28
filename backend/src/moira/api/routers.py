@@ -10,6 +10,7 @@ def all_routers() -> list[APIRouter]:
         routes_hubs,
         routes_nuggets,
         routes_search,
+        routes_share,
         routes_sky,
     )
 
@@ -20,4 +21,5 @@ def all_routers() -> list[APIRouter]:
         routes_hubs.router,
         routes_search.router,
         routes_admin.router,
+        routes_share.router,
     ]

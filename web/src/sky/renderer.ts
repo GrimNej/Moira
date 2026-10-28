@@ -326,6 +326,10 @@ export class SkyEngine {
   // ---------------------------------------------------------------- new stars
 
   /** A blue-white comet arcs from the composer to the star's real position (§4.3.5). */
+  has(id: string): boolean {
+    return !!this.model?.byId.has(id);
+  }
+
   cometTo(id: string, from: { x: number; y: number }, onLand?: () => void): void {
     const s = this.model?.byId.get(id);
     if (!s) return;

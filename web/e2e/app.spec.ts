@@ -134,3 +134,70 @@ test('Recent lists memories newest first', async ({ page }) => {
   const first = recent().items[0]!.title!;
   await expect(page.locator('#rlist .rrow').first()).toContainText(first.slice(0, 20));
 });
+
+function withNewStar(id: string) {
+  const s = sky.stars as unknown as Record<string, unknown[]>;
+  const stars = Object.fromEntries(Object.entries(s).map(([k, v]) => [k, [...v, v[0]]]));
+  (stars.id as string[])[stars.id!.length - 1] = id;
+  (stars.title as string[])[stars.title!.length - 1] = 'buy oat milk';
+  (stars.t as number[])[stars.t!.length - 1] = sky.template_now;
+  return { ...sky, stars, cursor: 'c2', removed: [] };
+}
+
+test('save → comet → star → toast Undo removes it', async ({ page }) => {
+  await signedIn(page);
+  let saved: () => void = () => undefined;
+  const filed = new Promise<void>((r) => (saved = r));
+  let first = true;
+  await page.route('**/api/events', async (r) => {
+    if (!first) return r.fulfill({ status: 204, body: '' });
+    first = false;
+    await filed;
+    const hub = sky.hubs[0]!;
+    const data = { id: 'n_new', hub_id: hub.id, hub_name: hub.name, fact_changed: false, now: [] };
+    return r.fulfill({
+      headers: { 'Content-Type': 'text/event-stream' },
+      body: `event: filed\ndata: ${JSON.stringify(data)}\n\n`,
+    });
+  });
+  await page.route('**/api/nuggets', (r) => {
+    saved();
+    return r.fulfill({ status: 202, json: { id: 'n_new', status: 'filing' } });
+  });
+  await page.route(
+    (u) => u.pathname === '/api/sky' && u.searchParams.has('since'),
+    (r) => r.fulfill({ json: withNewStar('n_new') }),
+  );
+  let forgot = false;
+  await page.route('**/api/nuggets/n_new/forget', (r) => {
+    forgot = true;
+    return r.fulfill({ json: { undo_group_id: 'g', undo_until: 0 } });
+  });
+
+  await page.goto('/');
+  await page.getByRole('tab', { name: 'Save', exact: true }).click();
+  await page.locator('#q').fill('buy oat milk');
+  await page.locator('#q').press('Enter');
+  const toast = page.getByRole('status').filter({ hasText: `Filed in ${sky.hubs[0]!.name}` });
+  await expect(toast).toBeVisible({ timeout: 10_000 });
+  await toast.getByRole('button', { name: 'Undo' }).click();
+  await expect.poll(() => forgot).toBe(true);
+});
+
+test('offline saves queue and send on reconnect', async ({ page, context }) => {
+  await signedIn(page);
+  const sent: string[] = [];
+  await page.route('**/api/nuggets', async (r) => {
+    sent.push((r.request().postDataJSON() as { text: string }).text);
+    return r.fulfill({ status: 202, json: { id: 'n_off', status: 'filing' } });
+  });
+  await page.goto('/');
+  await page.getByRole('tab', { name: 'Save', exact: true }).click();
+  await context.setOffline(true);
+  await page.locator('#q').fill('call the dentist');
+  await page.locator('#q').press('Enter');
+  await expect(page.getByText('Saved offline', { exact: false })).toBeVisible();
+  expect(sent).toEqual([]);
+  await context.setOffline(false);
+  await expect.poll(() => sent).toEqual(['call the dentist']);
+});

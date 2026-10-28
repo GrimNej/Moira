@@ -27,6 +27,72 @@
         "title": "AskIn",
         "type": "object"
       },
+      "Body_save_media_api_nuggets_media_post": {
+        "properties": {
+          "audio": {
+            "anyOf": [
+              {
+                "contentMediaType": "application/octet-stream",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Audio"
+          },
+          "images": {
+            "default": [],
+            "items": {
+              "contentMediaType": "application/octet-stream",
+              "type": "string"
+            },
+            "title": "Images",
+            "type": "array"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 10000,
+            "title": "Text",
+            "type": "string"
+          }
+        },
+        "title": "Body_save_media_api_nuggets_media_post",
+        "type": "object"
+      },
+      "Body_share_share_post": {
+        "properties": {
+          "files": {
+            "default": [],
+            "items": {
+              "contentMediaType": "application/octet-stream",
+              "type": "string"
+            },
+            "title": "Files",
+            "type": "array"
+          },
+          "text": {
+            "default": "",
+            "maxLength": 10000,
+            "title": "Text",
+            "type": "string"
+          },
+          "title": {
+            "default": "",
+            "maxLength": 1000,
+            "title": "Title",
+            "type": "string"
+          },
+          "url": {
+            "default": "",
+            "maxLength": 4000,
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "title": "Body_share_share_post",
+        "type": "object"
+      },
       "Caps": {
         "properties": {
           "cap_today": {
@@ -704,6 +770,44 @@
           }
         },
         "summary": "Save"
+      }
+    },
+    "/api/nuggets/media": {
+      "post": {
+        "description": "Images (up to 10) or one voice note, sniffed by magic bytes (App. B).",
+        "operationId": "save_media_api_nuggets_media_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_save_media_api_nuggets_media_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaveOut"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save Media"
       }
     },
     "/api/nuggets/{public_id}": {
@@ -1385,6 +1489,41 @@
           }
         },
         "summary": "Undo Route"
+      }
+    },
+    "/share": {
+      "post": {
+        "operationId": "share_share_post",
+        "requestBody": {
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_share_share_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Share"
       }
     }
   }
