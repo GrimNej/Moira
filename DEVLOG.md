@@ -25,6 +25,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - T18 bot commands: /start (owner on first start, tester and judge invites stored hashed, judges expire), /help, /web, /timezone, /forget (last or replied; 10-minute Undo button; deletes the Telegram message within 48 h; hard delete job), /undo (reverts the last AI event group), /stats (owner), /export (link until T50), /ask. Undo replays recorded event states; forget repairs fact hubs.
 - T19 AI client: Responses calls through the openai SDK with store=False on every request, strict structured output (Chat Completions behind STRUCTURED_TRANSPORT), web search, Files API video, multipart ASR; pre-flight budget caps; circuit breaker (5 failures in 2 min → open 120 s → half-open probe); one repair attempt; a ledger row per call; prompts 1.0.0 from §9.8 with front matter; FakeLLM for tests.
 - T20 embeddings: model2vec (256 dims, int8) behind an Embedder protocol, a deterministic hash embedder for tests, sqlite-vec KNN with a numpy fallback; KNN returns the item itself first in both. RSS: +70 MB for the model (Windows dev machine; see EXTERNAL_API_NOTES #2).
+- T21 link readers and SSRF guard, test first: every §7.3.3 case blocked (private, loopback, link-local, CGNAT, unique-local, multicast, reserved, IPv4-mapped, decimal/hex/octal forms, a domain resolving to 127.0.0.1, a redirect to 169.254.169.254); pinned IP with Host and SNI; 3 redirects; 2 MB; YouTube oEmbed, GitHub API (repo, README, blobs), page metadata and main text; walled platforms make no request.
 
 **Decisions**
 
@@ -38,5 +39,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T21
-**Built with** Claude Code (T01–T20 from Appendix M); reviewed by the developer.
+**Next** T22
+**Built with** Claude Code (T01–T21 from Appendix M); reviewed by the developer.
