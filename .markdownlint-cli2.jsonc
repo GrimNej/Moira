@@ -10,5 +10,5 @@
     "MD036": false
   },
   // The blueprint is a frozen planning document; it is linted by review, not CI.
-  "ignores": ["**/node_modules/**", "docs/blueprint/**", "web/dist/**"]
+  "ignores": ["**/node_modules/**", "**/.venv/**", "docs/blueprint/**", "web/dist/**"]
 }
