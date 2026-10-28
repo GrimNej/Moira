@@ -72,3 +72,25 @@ async def tell_user(services: Services, user: User, nugget: Any, what: str) -> N
         what, texts.TEXT_ONLY
     )
     await bot.send_message(chat_id, message)
+
+
+_last_alert: dict[str, int] = {}
+ALERT_EVERY_MS = 3_600_000
+
+
+async def alert_owner(services: Services, kind: str, text: str, *, throttle: bool = True) -> bool:
+    """A Telegram message to the owner; at most one per kind per hour (§13.15)."""
+    from moira.db.repos import users as users_repo
+
+    now = services.clock.now_ms()
+    if throttle and now - _last_alert.get(kind, -ALERT_EVERY_MS) < ALERT_EVERY_MS:
+        return False
+    _last_alert[kind] = now
+    bot = services.extras.get("bot")
+    owner = users_repo.owner(services.system)
+    chat = users_repo.chat_for_user(services.system, owner.id) if owner else None
+    if bot is None or chat is None:
+        log.info("owner_alert_not_sent", kind=kind)
+        return False
+    await bot.send_message(chat["chat_id"], text, disable_web_page_preview=True)
+    return True
