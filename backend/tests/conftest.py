@@ -1,11 +1,25 @@
 """Shared fixtures. Tests never read a real .env and never call external services."""
 
+import random
+import sqlite3
 from collections.abc import Iterator
+from dataclasses import dataclass
+from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
+from moira.capture.service import CaptureService
+from moira.clock import FixedClock
 from moira.config import Settings
+from moira.db.connection import open_db
+from moira.db.migrate import migrate
+from moira.db.repos import users
+from moira.db.repos.users import User
+from moira.embed.model import HashEmbedder
+from moira.jobs.queue import Queue
+from moira.memory.registry import Memories
 
 # Synthetic values only (AGENTS.md: never real tokens in tests).
 TEST_ENV = {
@@ -15,6 +29,7 @@ TEST_ENV = {
     "TELEGRAM_BOT_USERNAME": "moira_test_bot",
     "OWNER_TELEGRAM_ID": "1000001",
 }
+NPT = ZoneInfo("Asia/Kathmandu")
 
 
 @pytest.fixture(autouse=True)
@@ -27,3 +42,42 @@ def isolated_env(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> Iterator[No
     monkeypatch.setenv("DATA_DIR", str(tmp_path / "data"))
     monkeypatch.chdir(tmp_path)
     yield
+
+
+@dataclass
+class World:
+    """A temp system.db + memories + queue + capture service around a FixedClock."""
+
+    clock: FixedClock
+    system: sqlite3.Connection
+    memories: Memories
+    queue: Queue
+    capture: CaptureService
+    owner: User
+    data_dir: Path
+
+    def memory(self, user: User | None = None) -> sqlite3.Connection:
+        return self.memories.open((user or self.owner).memory_path)
+
+
+@pytest.fixture
+def world(tmp_path: Path) -> World:
+    data = tmp_path / "data"
+    clock = FixedClock(datetime(2026, 10, 26, 21, 0, tzinfo=NPT))
+    system = open_db(data / "system.db")
+    migrate(system, "system")
+    memories = Memories(data, clock, embed_model="hash", embed_dim=256)
+    queue = Queue(system, clock, rng=random.Random(3))
+    owner = users.create(
+        system,
+        public_id="u_ownerownerow",
+        kind="owner",
+        memory_path="memories/u_ownerownerow.db",
+        tz="Asia/Kathmandu",
+        now=clock.now_ms(),
+        telegram_id=1000001,
+    )
+    capture = CaptureService(
+        system=system, memories=memories, queue=queue, clock=clock, embedder=HashEmbedder(256)
+    )
+    return World(clock, system, memories, queue, capture, owner, data)
