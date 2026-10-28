@@ -87,3 +87,7 @@ strict = true
 [tool.coverage.run]
 source = ["moira"]
 branch = true
+
+[[tool.mypy.overrides]]
+module = ["sqlite_vec", "model2vec", "model2vec.*"]
+ignore_missing_imports = true
