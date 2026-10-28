@@ -17,4 +17,4 @@ def write_welcome_sky(template: Path, out: Path) -> None:
     finally:
         conn.close()
     out.parent.mkdir(parents=True, exist_ok=True)
-    out.write_text(json.dumps(data, separators=(",", ":")), encoding="utf-8")
+    out.write_text(json.dumps(data, separators=(",", ":")) + "\n", encoding="utf-8")
