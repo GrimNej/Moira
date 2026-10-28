@@ -1,15 +1,18 @@
 """Wiring: build the services, the job handlers, the bot and the worker for the lifespan.
 
-Each later task registers its routes in ``extra_routers`` and its handlers in
-``build_handlers`` so ``main.py`` stays small.
+Each later task registers its routes in ``extra_routers`` and its handlers through
+``services.extras["handler_factories"]`` so ``main.py`` stays small.
 """
 
 import asyncio
+import contextlib
 from collections.abc import Awaitable, Callable
 from typing import Any
 
 from fastapi import APIRouter
 
+from moira.ai.usage import Budget
+from moira.bus import Bus
 from moira.clock import SystemClock
 from moira.config import Settings
 from moira.embed.model import load_embedder
@@ -22,7 +25,38 @@ log = get_logger(__name__)
 
 def extra_routers() -> list[APIRouter]:
     """Routers added by later tasks (sky, nuggets, ask, …)."""
-    return []
+    from moira.api import routers
+
+    return routers.all_routers()
+
+
+def wire(services: Services, llm: Any = None) -> Services:
+    """Attach the AI client, the bus, notifications and the handler factories."""
+    from moira.notify import notify_filed
+
+    settings = services.settings
+    budget = Budget(services.system, settings, services.clock)
+    services.extras["budget"] = budget
+    if llm is None:
+        if settings.fake_llm:
+            from moira.ai.fake import FakeLLM
+
+            llm = FakeLLM()
+        else:
+            from moira.ai.client import MetaLLM
+
+            llm = MetaLLM(settings, budget, services.clock)
+    services.extras["llm"] = llm
+    services.extras.setdefault("bus", Bus())
+
+    async def _notify(user: Any, public_id: str, result: Any) -> None:
+        await notify_filed(services, user, public_id, result)
+
+    services.extras["notify_filed"] = _notify
+    from moira import pipelines
+
+    pipelines.register(services)
+    return services
 
 
 def startup_services(settings: Settings) -> Services:
@@ -33,12 +67,13 @@ def startup_services(settings: Settings) -> Services:
         settings.embed_quantize,
         fake=settings.app_env == "test",
     )
-    return build_services(settings, clock, embedder)
+    return wire(build_services(settings, clock, embedder))
 
 
 def build_handlers(services: Services) -> dict[str, Handler]:
-    """Job kind → handler. Filled in as the pipelines are built."""
-    return {}
+    from moira.jobs import handlers
+
+    return handlers.build(services)
 
 
 async def start_background(
@@ -52,6 +87,9 @@ async def start_background(
     services.extras["worker"] = worker
     tasks.append(asyncio.create_task(worker.run()))
     stoppers.append(worker.stop)
+    timers = services.extras.get("timers")
+    if timers is not None:
+        tasks.append(asyncio.create_task(timers(services)))
     if services.settings.app_env != "test":
         from aiogram import Bot
 
@@ -72,7 +110,7 @@ async def start_background(
         tasks.append(asyncio.create_task(poll()))
 
         async def stop_bot() -> None:
-            with __import__("contextlib").suppress(Exception):
+            with contextlib.suppress(Exception):
                 await dp.stop_polling()
             await bot.session.close()
 
