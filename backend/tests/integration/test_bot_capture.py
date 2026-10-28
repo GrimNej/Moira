@@ -35,7 +35,12 @@ def fake_bot() -> MagicMock:
     bot.delete_message = AsyncMock()
 
     async def download(file_id: str, destination: Path) -> None:
-        Path(destination).write_bytes(b"\xff\xd8\xff fake media")
+        if str(destination).endswith((".jpg", ".png", ".webp")):
+            from PIL import Image
+
+            Image.new("RGB", (40, 30), "white").save(destination, "JPEG")
+        else:
+            Path(destination).write_bytes(b"OggS fake voice")
 
     bot.download = AsyncMock(side_effect=download)
     return bot
