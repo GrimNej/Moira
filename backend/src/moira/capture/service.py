@@ -125,6 +125,67 @@ class CaptureService:
         )
         return result
 
+    def edit(
+        self, user: User, channel: Channel, external_id: str, new_text: str, *, via: str
+    ) -> Nugget | None:
+        """A user edit (§7.10): new raw event version, new nugget version, re-file later.
+
+        The raw layer changes only through ``nugget_versions`` (invariant 4). When the edited
+        message was one part of a group, only that part's text is replaced.
+        """
+        conn = self.memories.open(user.memory_path)
+        now = self.clock.now_ms()
+        original = repo.raw_event_by_external(conn, channel, external_id)
+        if original is None or original["nugget_id"] is None:
+            return None
+        nugget = repo.get(conn, original["nugget_id"])
+        if nugget is None or nugget.deleted_at is not None:
+            return None
+        text, found = secrets.mask(normalize_input(new_text))
+        old_part = original["text"] or ""
+        latest = conn.execute(
+            "SELECT text FROM raw_events WHERE edit_of = ? ORDER BY id DESC LIMIT 1",
+            (original["id"],),
+        ).fetchone()
+        if latest is not None:
+            old_part = latest["text"] or ""
+        if old_part and old_part in nugget.user_text and old_part != nugget.user_text:
+            user_text = nugget.user_text.replace(old_part, text, 1)
+        else:
+            user_text = text
+        if user_text == nugget.user_text:
+            return nugget
+        conn.execute("BEGIN IMMEDIATE")
+        try:
+            repo.insert_raw_event(
+                conn,
+                channel=channel,
+                kind=original["kind"],
+                text=text,
+                received_at=now,
+                external_id=external_id,
+                edit_of=original["id"],
+                nugget_id=nugget.id,
+            )
+            repo.add_version(conn, nugget.id, user_text, via, now)
+            if found:
+                conn.execute("UPDATE nuggets SET has_masked_secret = 1 WHERE id = ?", (nugget.id,))
+            repo.delete_exacts(conn, nugget.id, "user_text")
+            repo.insert_exacts(
+                conn,
+                nugget.id,
+                [e.as_tuple() for e in exacts_mod.extract(user_text, user.tz)],
+                "user_text",
+            )
+            indexing.index_instant(conn, nugget.id, self.embedder)
+            conn.execute("COMMIT")
+        except Exception:
+            conn.execute("ROLLBACK")
+            raise
+        self.queue.enqueue(user.id, "edit_refile", ref=nugget.public_id)
+        log.info("edited", user=user.public_id, channel=channel)
+        return repo.get(conn, nugget.id)
+
     def _open_group(self, inp: CaptureInput, user: User, conn: sqlite3.Connection) -> Nugget | None:
         """§7.1.1: same chat, previous nugget's file job still queued, merge rule holds."""
         if inp.channel != "telegram" or inp.chat_id is None:
