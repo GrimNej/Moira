@@ -14,6 +14,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - T04 web skeleton: Vite 5 + Preact + TypeScript strict, Appendix H tokens, the frame and the black sky window; Jost latin only (Q-005). Playwright checks the 1440 px column and window and the 390 px full-bleed sky; JS 5.4 KB gzipped.
 - T05 quality gates: Makefile (Appendix N.3), pre-commit (ruff, mypy, prettier, eslint, gitleaks, conventional commits, large files, private keys), CI with backend, web, e2e, security and docs jobs, PR and issue templates, Dependabot. A commit message without a type is rejected locally (checked). Hypothesis found a float rounding bug in `clock.to_ms`; fixed with integer maths.
 - T06 server and deploy files: Caddyfile and `moira.service` from §13.13, backup and DuckDNS units, idempotent `bootstrap_server.sh` and `firewall.sh`, `deploy.sh` (refuses a dirty tree or red CI, builds the web locally, release folders, migrations, symlink switch, smoke test with rollback, keeps 3 releases), DEPLOY.md. **Blocked:** the server does not exist yet, so the live deploy and the rollback test wait for the owner (D0 step 2).
+- T07 API verification: `scripts/verify_api.py` with the checks `structured`, `image`, `search`, `asr`, `video`, `effort`, `tokens`. **Blocked:** no `MODEL_API_KEY` yet, so no Meta check has run; the local checks J13 (sqlite-vec, trigram) and J14 (model2vec 256 int8, +70 MB) pass and are recorded.
 
 **Decisions**
 
@@ -27,5 +28,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T07
-**Built with** Claude Code (T01–T06 from Appendix M); reviewed by the developer.
+**Next** T08
+**Built with** Claude Code (T01–T07 from Appendix M); reviewed by the developer.
