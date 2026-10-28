@@ -34,6 +34,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - T27 query parsing and fusion: lexicons, Parsed (terms, phrases, exacts, source, kinds, time, past, intent, follow-ups), the vector, hub and people channels, RRF, and the time (telescoping ×1.6, windows), source, kind, history and importance priors. The vague question 'insta link about AI, ~2 weeks ago?' ranks the reel first in an integration test.
 - T28–T29 answer and deep tiers: candidates with precomputed local dates, sources and verified/possible labels; ANSWER; citation validation (an invented citation becomes 'not found' with the closest matches); turns stored; deep tier with PLAN, lookup re-retrieval, and §8.4 SQL for lists and counts (the count comes from SQL); 'the one before/after that'; degraded mode emits error with fallback ids.
 - T30 POST /api/ask over SSE (clues, lit, status, answer, done; never buffered), degraded mode as an error event with fallback ids, Found it / Not it feedback and Save instead on turns.
+- T31 Telegram answers: typing action, the shared answer service, plain text ≤ 1,200 characters, closest matches as '• Title — 12 Oct (Instagram)', lists up to 10 lines, a Show in sky web_app button to /?star=…&from=tg and Save instead (turns the raw question into a nugget).
 
 **Decisions**
 
@@ -47,5 +48,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T31
-**Built with** Claude Code (T01–T30 from Appendix M); reviewed by the developer.
+**Next** T32
+**Built with** Claude Code (T01–T31 from Appendix M); reviewed by the developer.

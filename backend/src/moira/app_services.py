@@ -53,6 +53,9 @@ def wire(services: Services, llm: Any = None) -> Services:
         await notify_filed(services, user, public_id, result)
 
     services.extras["notify_filed"] = _notify
+    from moira.bot.handlers_ask import telegram_ask
+
+    services.extras["telegram_ask"] = telegram_ask
     from moira import pipelines
 
     pipelines.register(services)

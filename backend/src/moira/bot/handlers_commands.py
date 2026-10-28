@@ -227,3 +227,6 @@ def register(router: Router) -> None:
     router.message.register(cmd_export, Command("export"))
     router.message.register(cmd_ask, Command("ask"))
     router.callback_query.register(on_undo_button, F.data.startswith("undo:"))
+    from moira.bot.handlers_ask import on_save_instead
+
+    router.callback_query.register(on_save_instead, F.data.startswith("save:"))
