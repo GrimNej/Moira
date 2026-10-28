@@ -8,5 +8,5 @@ export default defineConfig({
     proxy: { '/api': 'http://127.0.0.1:8000', '/share': 'http://127.0.0.1:8000' },
   },
   build: { target: 'es2022', sourcemap: true },
-  test: { include: ['tests/**/*.test.ts'], environment: 'node' },
+  test: { include: ['tests/**/*.test.ts'], environment: 'jsdom' },
 });

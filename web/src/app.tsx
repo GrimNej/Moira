@@ -1,25 +1,88 @@
-// The frame and the sky window (blueprint §4.3.3). Screens fill in with T35–T45.
+// The app shell: Welcome when signed out, the sky with the column when signed in (§4.3.2).
 
-export function App() {
+import { useEffect } from 'preact/hooks';
+
+import { startLive, stopLive } from './actions';
+import { Column } from './components/Column';
+import { Login } from './components/Login';
+import { SkyWindow } from './components/SkyWindow';
+import { Welcome } from './components/Welcome';
+import { navigate, route } from './router';
+import { engine } from './sky/engine';
+import { booted, me } from './state/session';
+import { lit, loadSky, sky, why } from './state/sky';
+import { narrow, panelState, settingsOpen, tab } from './state/ui';
+import { retryQueue } from './state/capture';
+
+function Main() {
+  useEffect(() => {
+    void loadSky().then(() => {
+      const r = route.value;
+      if (r.name === 'home' && r.star) {
+        const id = r.star;
+        setTimeout(() => {
+          if (r.from === 'tg') why.value = '';
+          engine()?.select(id);
+        }, 900);
+      }
+      if (r.name === 'recent') {
+        tab.value = 'recent';
+        if (narrow.value) panelState.value = 'full';
+      }
+      if (r.name === 'settings') settingsOpen.value = true;
+    });
+    startLive();
+    void retryQueue();
+    return () => stopLive();
+  }, []);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent): void => {
+      const t = e.target as HTMLElement;
+      const inField = !!t.closest?.('input,textarea,select,[role="slider"]');
+      const en = engine();
+      if (e.key === 'Escape') {
+        if (en?.sel) en.deselect();
+        else if (lit.value) {
+          lit.value = null;
+          en?.clearLight();
+        } else if (inField) t.blur();
+        return;
+      }
+      if (inField) return;
+      if (e.key === '/') {
+        e.preventDefault();
+        document.getElementById('q')?.focus();
+        return;
+      }
+      if (en?.keydown(e)) e.preventDefault();
+    };
+    addEventListener('keydown', onKey);
+    return () => removeEventListener('keydown', onKey);
+  }, []);
+
   return (
     <>
-      <a class="skip" href="#memories">
+      <a
+        class="skip"
+        href="#rlist"
+        onClick={() => {
+          tab.value = 'recent';
+          if (narrow.value) panelState.value = 'full';
+        }}
+      >
         Skip to the list of memories
       </a>
-      <div class="frame">
-        <aside class="column" aria-label="Moira">
-          <h1 class="wordmark">Moira</h1>
-          <p class="scope">Everything you save becomes a star.</p>
-          <div id="memories" tabIndex={-1} />
-        </aside>
-        <main class="window">
-          <canvas
-            class="sky-canvas"
-            role="img"
-            aria-label="Your memories as a night sky. Each star is one memory, coloured by its age from blue-white for new to amber for old, and grouped into constellations by topic."
-          />
-        </main>
-      </div>
+      <Column />
+      <SkyWindow payload={sky.value} />
     </>
   );
+}
+
+export function App() {
+  const r = route.value;
+  if (r.name === 'login') return <Login token={r.token} />;
+  if (!booted.value) return <div class="side" />;
+  if (!me.value) return <Welcome onStarted={() => navigate('/', true)} />;
+  return <Main />;
 }
