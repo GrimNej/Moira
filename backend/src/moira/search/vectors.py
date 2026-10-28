@@ -13,7 +13,7 @@ TABLES = ("vec_nuggets", "vec_hubs")
 
 def _check(table: Table) -> None:
     if table not in TABLES:
-        raise ValueError(table)
+        raise ValueError(f"unknown vector table: {table!r}")
 
 
 def upsert(
