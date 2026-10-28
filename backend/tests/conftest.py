@@ -99,3 +99,27 @@ def services(world: World):  # type: ignore[no-untyped-def]
         embedder=world.capture.embedder,
         capture=world.capture,
     )
+
+
+@pytest.fixture
+def app(services):  # type: ignore[no-untyped-def]
+    """Services wired with FakeLLM, the bus and every job handler."""
+    from moira.ai.fake import FakeLLM
+    from moira.app_services import wire
+
+    return wire(services, FakeLLM())
+
+
+async def run_jobs(app, minutes: int = 4) -> int:  # type: ignore[no-untyped-def]
+    """Advance the clock past debounce and preconditions and run every ready job."""
+    from datetime import timedelta
+
+    from moira.app_services import build_handlers
+    from moira.jobs.worker import Worker
+
+    worker = Worker(app.queue, build_handlers(app))
+    total = 0
+    for _ in range(minutes * 2):
+        app.clock.advance(timedelta(seconds=30))
+        total += await worker.run_once()
+    return total
