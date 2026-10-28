@@ -19,6 +19,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - T10–T12 parsers, test first: secret masking S1–S8 (every Appendix E.1 example plus 35 more; property tests that no detected secret survives), URL canonicalization (33 cases, idempotence property), exact strings, and the Appendix F time grammar (every row of the test table at Mon 26 Oct 2026 21:00 NPT).
 - T13 job queue and worker: lanes (file FIFO per user, media one at a time), debounce with the 90 s cap, backoff with jitter and Retry-After, dead jobs, stuck-job requeue, budget and outage reschedules that do not use an attempt (§9.10).
 - T14 capture service: raw event first, question detection (Telegram only), grouping of a bare link or media with a caption while the file job is queued, dedupe by canonical URL or short-text hash (saved_count), exacts, the instant index (FTS, trigram, vector) and link, media and debounced file jobs. A deterministic hash embedder stands in for model2vec in tests.
+- T15 instant search on raw text: FTS (every term quoted, so FTS operators are inert), trigram substrings for exact-looking tokens and phrases, normalized exact lookups, fused with RRF.
 
 **Decisions**
 
@@ -32,5 +33,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T15
-**Built with** Claude Code (T01–T14 from Appendix M); reviewed by the developer.
+**Next** T16
+**Built with** Claude Code (T01–T15 from Appendix M); reviewed by the developer.
