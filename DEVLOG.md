@@ -22,6 +22,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - T15 instant search on raw text: FTS (every term quoted, so FTS operators are inert), trigram substrings for exact-looking tokens and phrases, normalized exact lookups, fused with RRF.
 - T16 bot capture: private chats only (groups get one line and the bot leaves), text, links, photos (largest ≤ 20 MB), albums (one nugget, one reaction), voice, video (≤ 90 s), documents, forwards with origin, locations and contacts, edits as versions with a re-file job, the secret warning with a delete button. Reactions only, never 'Saved' texts.
 - T17 sign-in: one-time login links in the URL fragment (10 minutes, once), Mini App initData validated with aiogram and rejected after 24 h, hashed sessions as an HttpOnly cookie or a bearer token, the X-Moira CSRF header, per-route rate limits with Retry-After, /api/me, /web. The lifespan now builds the services and starts the worker and the bot.
+- T18 bot commands: /start (owner on first start, tester and judge invites stored hashed, judges expire), /help, /web, /timezone, /forget (last or replied; 10-minute Undo button; deletes the Telegram message within 48 h; hard delete job), /undo (reverts the last AI event group), /stats (owner), /export (link until T50), /ask. Undo replays recorded event states; forget repairs fact hubs.
 
 **Decisions**
 
@@ -35,5 +36,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T18
-**Built with** Claude Code (T01–T17 from Appendix M); reviewed by the developer.
+**Next** T19
+**Built with** Claude Code (T01–T18 from Appendix M); reviewed by the developer.
