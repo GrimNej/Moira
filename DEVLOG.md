@@ -30,6 +30,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - T25 sky placement and importance: hub centres around the most similar hub (24 angles, ≥ 220 apart), stars pulled toward similar stars in their primary hub with seeded jitter, kept inside the constellation, spaced ≥ 9 units with a 16-unit spatial hash and a golden-angle spiral; importance formula of §7.7.3. 5,000 synthetic stars place in ~5 s with no two closer than 9.
 - T23 filing apply: enrichment, image text and its exacts, new hubs placed near the most similar hub, memberships, add/replace/remove/correct with Earlier and Corrected roles, person hubs linked to people (two Joshes stay two), hub events for every change, full re-index, the star placed once, a live filed event and the ✍ reaction. Job handlers for file (waits ≤ 3 min for readers), refresh, edit_refile and hard_delete. With FakeLLM: apple → banana → oranges gives the expected Now lines and roles; found content and injected instructions never change a fact; undo restores the exact previous state.
 - T24 research: read_link job (frozen readings reused for the same canonical URL), walled or blocked links researched with web search before filing, verified in code by post id (else 'possible'), not_found retried at +1 and +7 days, a later success refreshes derived fields only. Tests never touch the network: the app fixture's reader returns 'blocked'.
+- T26 first real filing run: contract test and 10 synthetic update sequences (data/eval/updates.jsonl) ready. **Blocked:** needs MODEL_API_KEY and 5 public reels; run `make contract` once the key exists (spends a few cents).
 
 **Decisions**
 
@@ -43,5 +44,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T26
-**Built with** Claude Code (T01–T24 from Appendix M); reviewed by the developer.
+**Next** T27
+**Built with** Claude Code (T01–T26 from Appendix M); reviewed by the developer.
