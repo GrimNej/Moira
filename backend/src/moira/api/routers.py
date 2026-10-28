@@ -9,6 +9,7 @@ def all_routers() -> list[APIRouter]:
         routes_ask,
         routes_hubs,
         routes_nuggets,
+        routes_sandbox,
         routes_search,
         routes_share,
         routes_sky,
@@ -22,4 +23,5 @@ def all_routers() -> list[APIRouter]:
         routes_search.router,
         routes_admin.router,
         routes_share.router,
+        routes_sandbox.router,
     ]

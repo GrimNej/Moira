@@ -8,6 +8,7 @@ from moira import ids
 from moira.clock import to_ms
 from moira.db.repos import users as repo
 from moira.db.repos.users import User, UserKind
+from moira.sandbox import SAMPLE_TZ
 from moira.services import Services
 
 
@@ -38,15 +39,16 @@ def _new_user(
     folder = "sandboxes" if kind == "sandbox" else "memories"
     memory_path = f"{folder}/{public_id}.db"
     seed = services.extras.get("seed_memory")
-    if seed is not None and kind == "judge":
-        seed(memory_path)  # a private copy of the sample memory (T47)
+    seeded = seed is not None and kind in ("judge", "sandbox")
+    if seed is not None and seeded:
+        seed(memory_path)  # a private, rebased copy of the sample memory (§11.4)
     services.memories.open(memory_path, "sandbox" if kind == "sandbox" else "user")
     return repo.create(
         services.system,
         public_id=public_id,
         kind=kind,
         memory_path=memory_path,
-        tz=services.settings.default_tz,
+        tz=SAMPLE_TZ if seeded else services.settings.default_tz,
         now=services.clock.now_ms(),
         telegram_id=telegram_id,
         display_name=name,

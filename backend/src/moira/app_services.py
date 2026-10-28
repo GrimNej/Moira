@@ -48,6 +48,10 @@ def wire(services: Services, llm: Any = None) -> Services:
             llm = MetaLLM(settings, budget, services.clock)
     services.extras["llm"] = llm
     services.extras.setdefault("bus", Bus())
+    if "seed_memory" not in services.extras:
+        from moira.sandbox.service import install
+
+        install(services)  # judges and sandboxes start from the sample memory (§11.4)
 
     async def _notify(user: Any, public_id: str, result: Any) -> None:
         await notify_filed(services, user, public_id, result)
