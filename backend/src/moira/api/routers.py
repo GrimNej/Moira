@@ -4,4 +4,6 @@ from fastapi import APIRouter
 
 
 def all_routers() -> list[APIRouter]:
-    return []
+    from moira.api import routes_ask
+
+    return [routes_ask.router]
