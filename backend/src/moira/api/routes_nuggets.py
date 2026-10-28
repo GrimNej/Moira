@@ -2,11 +2,12 @@
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, Response
+from fastapi import APIRouter, Depends, File, Form, Response, UploadFile
 from pydantic import BaseModel, Field
 
 from moira import card
 from moira.api.deps import ServicesDep, UserDep, csrf, rate
+from moira.api.uploads import read_uploads
 from moira.capture.service import CaptureInput
 from moira.db.repos import hubs as hubs_repo
 from moira.db.repos import nuggets as repo
@@ -143,6 +144,28 @@ async def save(body: SaveIn, user: UserDep, services: ServicesDep) -> SaveOut:
     return SaveOut(
         id=r.nugget.public_id, status=r.nugget.status if r.status != "duplicate" else "filed"
     )
+
+
+@router.post("/nuggets/media", status_code=202, dependencies=[Depends(rate("media", 10, 60))])
+async def save_media(
+    user: UserDep,
+    services: ServicesDep,
+    images: list[UploadFile] = File(default=[]),  # noqa: B008
+    audio: UploadFile | None = File(default=None),  # noqa: B008
+    text: str = Form(default="", max_length=10_000),
+) -> SaveOut:
+    """Images (up to 10) or one voice note, sniffed by magic bytes (App. B)."""
+    media = await read_uploads(services.tmp_dir, images, audio)
+    if media.kind == "text" and not text.strip():
+        raise ValidationFailed("Nothing to save.")
+    r = services.capture.capture(
+        CaptureInput(
+            channel="web", kind=media.kind, text=text, tmp_files=media.paths, media_meta=media.meta
+        ),
+        user,
+    )
+    assert r.nugget is not None
+    return SaveOut(id=r.nugget.public_id, status=r.nugget.status)
 
 
 @router.patch("/nuggets/{public_id}", dependencies=[Depends(rate("edit", 30, 60))])

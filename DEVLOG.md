@@ -39,6 +39,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - T33 evaluation harness: the eval memory is built from data/demo by the real pipeline (FakeLLM unless --real), 40 queries across the §12.2 categories, the A–H ablation ladder, Recall@1/@5, MRR@10, top citation, not-found precision, hallucinated citations, a response cache keyed by prompt version and input hash, a dated RESULTS.md row per config and an SVG chart. First FakeLLM run: R@5 0.78 (A) → 0.95 (F–H), 0 hallucinated citations; this checks the pipeline, not model quality. Sample data: 195 synthetic rows + 10 anchors (Q-009).
 - T34 sky, card and events API: columnar sky payload with flags and history threads (and ?since= deltas with removals), the card of §4.3.6 with dates computed in code, Recent with cursor paging and filters, save, edit, forget, move, unlink, restore, split, undo, hubs with history, instant search with clue labels, GET /api/events (≤ 5 streams, ping 25 s), owner-only /api/admin/stats; openapi.json and API.md updated.
 - Web app: API client and SSE, state, Canvas sky engine (stars, Milky Way, labels, picking, camera, timeline, comets), column and phone sheet, card, Ask thread, Recent, composer, Welcome, login, settings; label placement unit tests; Playwright e2e on phone and desktop against the sample sky (Q-011, Q-012)
+- Saving from the web: POST /api/nuggets/media (sniffed, EXIF-stripped, cleaned up on error), offline queue e2e, comet waits for the star (fixes a filed-before-response race). PWA: manifest with Android share_target, service worker (shell only, never /api), icons; POST /share with an Origin check (Q-013). Real-phone checks J16/J25 wait for the developer
 
 **Decisions**
 
@@ -52,5 +53,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T44
+**Next** T46
 **Built with** Claude Code (T01–T35–T43 from Appendix M); reviewed by the developer.

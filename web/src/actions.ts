@@ -11,6 +11,17 @@ import { asked, narrow, panelState, showToast, tab } from './state/ui';
 
 /** Saves waiting for their `filed` event, with where the comet starts. */
 const pendingSaves = new Map<string, { from: { x: number; y: number } }>();
+// A fast filer can announce the star before the save request has returned; keep it briefly.
+const earlyFiled = new Map<string, Record<string, unknown>>();
+
+function track(id: string, from: { x: number; y: number }): void {
+  pendingSaves.set(id, { from });
+  const early = earlyFiled.get(id);
+  if (early) {
+    earlyFiled.delete(id);
+    void onFiled(early);
+  }
+}
 
 function composerPoint(): { x: number; y: number } {
   const el = document.querySelector('.composer');
@@ -66,20 +77,20 @@ export async function saveNugget(text: string): Promise<void> {
     showToast('Saved offline. It will send when you are back online.');
     return;
   }
-  pendingSaves.set(res.id, { from });
+  track(res.id, from);
 }
 
 export async function saveFiles(files: File[]): Promise<void> {
   const from = composerPoint();
   const res = await saveMedia(files);
-  if (res) pendingSaves.set(res.id, { from });
+  if (res) track(res.id, from);
   else showToast('That file could not be saved. Send a screenshot or a voice note.');
 }
 
 export async function saveVoice(blob: Blob): Promise<void> {
   const from = composerPoint();
   const res = await saveMedia([blob], '', true);
-  if (res) pendingSaves.set(res.id, { from });
+  if (res) track(res.id, from);
   else showToast('That voice note could not be saved. Try again.');
 }
 
@@ -88,11 +99,16 @@ async function onFiled(data: Record<string, unknown>): Promise<void> {
   await refreshSky();
   const e = engine();
   const pending = pendingSaves.get(id);
-  if (!pending || !e) return;
+  if (!pending) {
+    earlyFiled.set(id, data);
+    setTimeout(() => earlyFiled.delete(id), 30_000);
+    return;
+  }
+  if (!e) return;
   pendingSaves.delete(id);
   const hubName = String(data.hub_name ?? 'your sky');
   const nowLines = (data.now as string[] | undefined) ?? [];
-  e.cometTo(id, pending.from, () => {
+  const land = (): void => {
     const undo = {
       label: 'Undo',
       run: () => {
@@ -101,7 +117,13 @@ async function onFiled(data: Record<string, unknown>): Promise<void> {
     };
     if (data.fact_changed && nowLines[0]) showToast(nowLines[0].replace(/\.$/, ''), undo);
     else showToast(`Filed in ${hubName}`, undo);
-  });
+  };
+  // The engine takes the new payload on the next render; wait a few frames for the star.
+  for (let i = 0; i < 30 && !e.has(id); i++) {
+    await new Promise((r) => requestAnimationFrame(() => r(null)));
+  }
+  if (e.has(id)) e.cometTo(id, pending.from, land);
+  else land();
 }
 
 let stream: AbortController | null = null;
