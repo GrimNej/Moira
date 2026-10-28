@@ -36,6 +36,7 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - T30 POST /api/ask over SSE (clues, lit, status, answer, done; never buffered), degraded mode as an error event with fallback ids, Found it / Not it feedback and Save instead on turns.
 - T31 Telegram answers: typing action, the shared answer service, plain text ≤ 1,200 characters, closest matches as '• Title — 12 Oct (Instagram)', lists up to 10 lines, a Show in sky web_app button to /?star=…&from=tg and Save instead (turns the raw question into a nugget).
 - T32 voice and images: magic-byte sniffing; images downscaled to 1,280 px and re-encoded without EXIF (GPS) right after download, original deleted; voice converted with ffmpeg to 16 kHz mono WAV (split past 9.5 min), transcribed with up to 50 keywords from the memory, transcript masked and stored as the user's own words, WAV and original deleted; a silent note gets 🤔 and one line. Principle 2 tests for voice and photos; the ASR multipart request matches the documented schema.
+- T33 evaluation harness: the eval memory is built from data/demo by the real pipeline (FakeLLM unless --real), 40 queries across the §12.2 categories, the A–H ablation ladder, Recall@1/@5, MRR@10, top citation, not-found precision, hallucinated citations, a response cache keyed by prompt version and input hash, a dated RESULTS.md row per config and an SVG chart. First FakeLLM run: R@5 0.78 (A) → 0.95 (F–H), 0 hallucinated citations; this checks the pipeline, not model quality. Sample data: 195 synthetic rows + 10 anchors (Q-009).
 
 **Decisions**
 
@@ -49,5 +50,5 @@ For judges, the developer and coding agents: how Moira was built, session by ses
 - `make` is not installed on the Windows dev machine; the Makefile targets were run as their underlying commands. CI runs them on Ubuntu.
 
 **Commits** first commits on `main` · **Tag** none yet
-**Next** T33
-**Built with** Claude Code (T01–T32 from Appendix M); reviewed by the developer.
+**Next** T34
+**Built with** Claude Code (T01–T33 from Appendix M); reviewed by the developer.
