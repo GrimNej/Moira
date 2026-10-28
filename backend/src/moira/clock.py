@@ -7,17 +7,20 @@ UTC milliseconds since the epoch.
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
 
+EPOCH = datetime(1970, 1, 1, tzinfo=UTC)
+MS = timedelta(milliseconds=1)
+
 
 def to_ms(dt: datetime) -> int:
     """Convert an aware datetime to UTC milliseconds."""
     if dt.tzinfo is None:
         raise ValueError("naive datetime; attach a time zone first")
-    return int(dt.timestamp() * 1000)
+    return (dt - EPOCH) // MS  # integer maths: float timestamps lose a millisecond
 
 
 def from_ms(ms: int) -> datetime:
     """Convert UTC milliseconds to an aware UTC datetime."""
-    return datetime.fromtimestamp(ms / 1000, tz=UTC)
+    return EPOCH + ms * MS
 
 
 class Clock(Protocol):
