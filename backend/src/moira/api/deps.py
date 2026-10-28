@@ -56,16 +56,12 @@ def client_ip(request: Request) -> str:
 def rate(name: str, limit: int, window_s: int, *, by: str = "user") -> Callable[..., None]:
     """A dependency enforcing ``limit`` requests per ``window_s`` per user (or per IP)."""
 
-    def dep(
-        request: Request,
-        limiter: Annotated[Limiter, Depends(get_limiter)],
-        services: Annotated[Services, Depends(get_services)],
-    ) -> None:
+    def dep(request: Request, limiter: Annotated[Limiter, Depends(get_limiter)]) -> None:
         if by == "ip":
             key = client_ip(request)
         else:
             user = getattr(request.state, "user", None) or auth.resolve(
-                services, token_from(request)
+                get_services(request), token_from(request)
             )
             key = user.public_id if user is not None else client_ip(request)
         limiter.check(name, key, limit, window_s)
