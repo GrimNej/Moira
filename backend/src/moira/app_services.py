@@ -53,6 +53,13 @@ def wire(services: Services, llm: Any = None) -> Services:
         await notify_filed(services, user, public_id, result)
 
     services.extras["notify_filed"] = _notify
+
+    async def _tell(user: Any, nugget: Any, what: str) -> None:
+        from moira.notify import tell_user
+
+        await tell_user(services, user, nugget, what)
+
+    services.extras["tell_user"] = _tell
     from moira.bot.handlers_ask import telegram_ask
 
     services.extras["telegram_ask"] = telegram_ask
